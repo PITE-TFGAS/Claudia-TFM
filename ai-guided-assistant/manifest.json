@@ -14,14 +14,25 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["overlay/overlay.js", "content.js"]
+      "js": [
+        "content/domProcessor.js",
+        "content/highlighter.js",
+        "content/aiHandler.js",
+        "content/intentParser.js",
+        "content/content.js",
+
+        "overlay/overlayState.js",
+        "overlay/chatUI.js",
+        "overlay/overlayUI.js",
+        "overlay/overlay.js"
+      ]
     }
   ],
 
   "background": {
     "service_worker": "background.js"
   },
-  
+
   "web_accessible_resources": [
     {
       "resources": [
