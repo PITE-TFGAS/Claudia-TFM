@@ -17,12 +17,11 @@
       "js": [
         "content/domProcessor.js",
         "content/highlighter.js",
-        "content/aiHandler.js",
-        "content/intentParser.js",
+        "content/intentService.js",
         "content/content.js",
 
         "overlay/overlayState.js",
-        "overlay/chatUI.js",
+        "overlay/chatHandler.js",
         "overlay/overlayUI.js",
         "overlay/overlay.js"
       ]

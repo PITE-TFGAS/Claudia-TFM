@@ -2,23 +2,29 @@
 
 console.log("content script loaded");
 
-
 chrome.runtime.onMessage.addListener(async (message) => {
   if (message.type !== "USER_GOAL") return;
 
   const intent = parseIntent(message.goal);
   const dom = obtenerDOM();
-  const respuesta = await pedirAIAQueEncuentreElemento(intent, dom);
 
-  if (!respuesta) return console.log("IA no devolvió nada usable");
+  const respuesta = await resolverIntencion(intent, dom);
+
+  if (respuesta.descripcion) {
+    chrome.runtime.sendMessage({
+      type: "SHOW_DESCRIPTION_OVERLAY",
+      descripcion: respuesta.descripcion,
+    });
+  }
+
+  if (!respuesta) {
+    console.log("IA no devolvió nada usable");
+    return;
+  }
 
   const el = buscarElementoRobusto(respuesta.selector, respuesta.descripcion);
 
   if (el) {
-    chrome.runtime.sendMessage({
-      type: "SHOW_DESCRIPTION_OVERLAY",
-      descripcion: respuesta.descripcion
-    });
     resaltarElemento(el);
   } else {
     console.log("No se encontró el elemento");
