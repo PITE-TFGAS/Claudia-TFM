@@ -1,0 +1,38 @@
+#asistente-overlay {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 999999;
+}
+
+.asistente-chat {
+  width: 320px;
+  height: 420px;
+  background: white;
+  border-radius: 18px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: system-ui;
+}
+
+.asistente-header {
+  padding: 14px;
+  background: #111;
+  color: white;
+  font-weight: 600;
+}
+
+.asistente-messages {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+.asistente-input {
+  border: none;
+  border-top: 1px solid #eee;
+  padding: 12px;
+  outline: none;
+}
