@@ -27,6 +27,7 @@ function obtenerDOM() {
   return html;
 }
 
+
 //-------------------------------------------
 // Resolver selector robusto
 //-------------------------------------------
@@ -34,13 +35,17 @@ function buscarElementoRobusto(selector, descripcion) {
   if (!selector) selector = "";
   selector = selector.trim();
 
-  try {
-    if (selector.startsWith("#") || selector.startsWith(".")) {
+  // Intentar usar querySelector directamente SI hay un selector
+  if (selector) {
+    try {
       const el = document.querySelector(selector);
-      if (el) return el;
+      if (el) return el; // si lo encuentra, return
+    } catch (e) {
+      console.warn("Selector no válido:", selector, e);
     }
-  } catch (_) {}
+  }
 
+  // Si no hay selector o no encontró nada, fallback a búsqueda por keywords
   const keywords = [
     "accede",
     "acceder",
@@ -52,7 +57,7 @@ function buscarElementoRobusto(selector, descripcion) {
   ];
   const textoReferencia = (selector + " " + (descripcion || "")).toLowerCase();
   const elementos = document.querySelectorAll(
-    "a, button, [role=button], input[type=submit], input[type=button]",
+    "a, button, [role=button], input[type=submit], input[type=button]"
   );
 
   let mejorMatch = null;
@@ -62,20 +67,25 @@ function buscarElementoRobusto(selector, descripcion) {
     const t = (el.textContent || "").toLowerCase().trim();
     const aria = (el.getAttribute("aria-label") || "").toLowerCase();
     let score = 0;
+
     for (const kw of keywords) {
       if (t.includes(kw)) score += 3;
       if (aria.includes(kw)) score += 2;
       if (textoReferencia.includes(kw)) score += 1;
     }
+
     const rect = el.getBoundingClientRect();
     if (rect.width > 0 && rect.width < 400 && rect.height < 200) score += 1;
+
     if (score > mejorScore) {
       mejorScore = score;
       mejorMatch = el;
     }
   }
+
   return mejorMatch;
 }
+
 
 //-------------------------------------------
 // Llamada a Gemini desde el background
@@ -135,6 +145,7 @@ chrome.runtime.onMessage.addListener(async (message) => {
       });
       resaltarElemento(el);
       console.log("Instrucción:", respuesta.descripcion);
+      console.log("Instrucción:", respuesta.selector);
     } else {
       console.log("No se encontró el elemento");
     }

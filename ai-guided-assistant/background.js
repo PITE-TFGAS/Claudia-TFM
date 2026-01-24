@@ -1,7 +1,8 @@
 //-------------------------------------------
 // CONFIG
 //-------------------------------------------
-const API_KEY = "AIzaSyC05B_bUsgP2FgRDcMHhv-Hl5jxGRQejWM";
+
+const API_KEY = "";
 
 //-------------------------------------------
 // HELPERS: limpiar y extraer JSON
