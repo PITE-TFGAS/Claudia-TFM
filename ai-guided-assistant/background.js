@@ -3,7 +3,6 @@
 //-------------------------------------------
 const API_KEY = "AIzaSyC05B_bUsgP2FgRDcMHhv-Hl5jxGRQejWM";
 
-
 //-------------------------------------------
 // HELPERS: limpiar y extraer JSON
 //-------------------------------------------
@@ -21,6 +20,31 @@ function extraerJSON(texto) {
   return match ? match[0] : null;
 }
 
+//-------------------------------------------
+// Escucha el overlay y el content
+//-------------------------------------------
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "USER_GOAL") {
+    // Enviar al content de la pestaña activa
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]?.id) {
+        chrome.tabs.sendMessage(tabs[0].id, { type: "USER_GOAL", goal: message.goal });
+      }
+    });
+    sendResponse({ ok: true });
+  }
+  if (message.type === "SHOW_DESCRIPTION_OVERLAY") {
+    // Enviar al overlay
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      chrome.tabs.sendMessage(tabs[0].id, {
+        type: "SHOW_DESCRIPTION_OVERLAY",
+        descripcion: message.descripcion
+      });
+    });
+  }
+});
+
+
 
 //-------------------------------------------
 // Listener principal
@@ -28,16 +52,25 @@ function extraerJSON(texto) {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "CALL_GEMINI") {
     llamarGemini(message.intent, message.dom)
-      .then(sendResponse)
+      .then(json => {
+        // Devolver la respuesta al overlay
+        sendResponse(json);
+      })
       .catch(err => {
         console.error("Error llamando a Gemini:", err);
         sendResponse(null);
       });
+    return true;
+  }
 
+  // Mensajes de chat general
+  if (message.type === "USER_CHAT") {
+    // TO DO: integrar un chat general con Gemini
+    // Por ahora devuelvo mensaje fijo para pruebas
+    sendResponse({ text: "Estoy aquí para ayudarte con tu meta" });
     return true;
   }
 });
-
 
 //-------------------------------------------
 // Llamada a Gemini + PARSING

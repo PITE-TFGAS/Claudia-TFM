@@ -5,7 +5,10 @@ console.log("content script loaded");
 //-------------------------------------------
 function limpiarJSON(texto) {
   if (!texto) return "{}";
-  return texto.replace(/```json/gi, "").replace(/```/g, "").trim();
+  return texto
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
 }
 
 function extraerJSON(texto) {
@@ -18,7 +21,7 @@ function extraerJSON(texto) {
 //-------------------------------------------
 function obtenerDOM() {
   const clone = document.body.cloneNode(true);
-  clone.querySelectorAll("script, style, noscript").forEach(e => e.remove());
+  clone.querySelectorAll("script, style, noscript").forEach((e) => e.remove());
   let html = clone.innerHTML;
   if (html.length > 10000) html = html.slice(0, 10000);
   return html;
@@ -38,9 +41,19 @@ function buscarElementoRobusto(selector, descripcion) {
     }
   } catch (_) {}
 
-  const keywords = ["accede","acceder","iniciar","login","entrar","perfil","account"];
+  const keywords = [
+    "accede",
+    "acceder",
+    "iniciar",
+    "login",
+    "entrar",
+    "perfil",
+    "account",
+  ];
   const textoReferencia = (selector + " " + (descripcion || "")).toLowerCase();
-  const elementos = document.querySelectorAll("a, button, [role=button], input[type=submit], input[type=button]");
+  const elementos = document.querySelectorAll(
+    "a, button, [role=button], input[type=submit], input[type=button]",
+  );
 
   let mejorMatch = null;
   let mejorScore = 0;
@@ -68,7 +81,7 @@ function buscarElementoRobusto(selector, descripcion) {
 // Llamada a Gemini desde el background
 //-------------------------------------------
 async function pedirAIAQueEncuentreElemento(intent, dom) {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     chrome.runtime.sendMessage({ type: "CALL_GEMINI", intent, dom }, resolve);
   });
 }
@@ -96,33 +109,43 @@ function resaltarElemento(el) {
 // Ejecutar función
 //-------------------------------------------
 async function ejecutarDOM(intencionUsuario) {
-  console.log("Intención:", intencionUsuario);
+  console.log("Intención recibida para procesar:", intencionUsuario);
   const dom = obtenerDOM();
   const respuesta = await pedirAIAQueEncuentreElemento(intencionUsuario, dom);
-  if (!respuesta) return console.log("IA no devolvió nada usable");
-
-  const el = buscarElementoRobusto(respuesta.selector, respuesta.descripcion);
-  if (el) {
-    resaltarElemento(el);
-    console.log("Instrucción:", respuesta.descripcion);
-  } else {
-    console.log("No se encontró el elemento");
-  }
+  if (!respuesta) return null;
+  console.log("Respuesta de Gemini:", respuesta);
+  return respuesta;
 }
+
 
 //-------------------------------------------
 // Escuchar mensajes del popup
 //-------------------------------------------
-chrome.runtime.onMessage.addListener((message) => {
+chrome.runtime.onMessage.addListener(async (message) => { 
   if (message.type === "USER_GOAL") {
-    ejecutarDOM(message.goal);
+    const respuesta = await ejecutarDOM(message.goal);
+
+    if (!respuesta) return console.log("IA no devolvió nada usable");
+
+    const el = buscarElementoRobusto(respuesta.selector, respuesta.descripcion);
+    if (el) {
+      chrome.runtime.sendMessage({
+        type: "SHOW_DESCRIPTION_OVERLAY",
+        descripcion: respuesta.descripcion,
+      });
+      resaltarElemento(el);
+      console.log("Instrucción:", respuesta.descripcion);
+    } else {
+      console.log("No se encontró el elemento");
+    }
   }
 });
+
 
 //-------------------------------------------
 // Escuchar cambios en toggle asistente
 //-------------------------------------------
-chrome.storage.onChanged.addListener(changes => {
+chrome.storage.onChanged.addListener((changes) => {
   if ("asistenteEnabled" in changes) {
     if (changes.asistenteEnabled.newValue && window.montarOverlay) {
       window.montarOverlay();
@@ -133,7 +156,7 @@ chrome.storage.onChanged.addListener(changes => {
 });
 
 // Inicializar overlay si estaba activo
-chrome.storage.local.get("asistenteEnabled", res => {
+chrome.storage.local.get("asistenteEnabled", (res) => {
   if (res.asistenteEnabled && window.montarOverlay) {
     window.montarOverlay();
   }
