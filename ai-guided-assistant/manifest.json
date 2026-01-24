@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "AI Guided Assistant",
+  "description": "Guides users step by step through web tasks using AI assistance.",
+  "version": "0.0.1",
+
+  "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "host_permissions": ["<all_urls>"],
+
+  "action": {
+    "default_popup": "popup.html"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+
+  "background": {
+    "service_worker": "background.js"
+  }
+}
