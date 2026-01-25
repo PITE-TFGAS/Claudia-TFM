@@ -40,4 +40,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     return true; // async
   }
+
+  // Llamar al backend (nuevo método paso a paso)
+  if (message.type === "CALL_AI_STEP") {
+    fetch("http://localhost:3000/ai/step", { 
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(message.payload),
+    })
+      .then((res) => res.json())
+      .then((data) => sendResponse(data))
+      .catch((err) => {
+        console.error("Backend error:", err);
+        sendResponse({ feedback: "Error de conexión con el cerebro." });
+      });
+
+    return true; // async
+  }
+
 });

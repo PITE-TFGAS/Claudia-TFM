@@ -3,6 +3,9 @@
 // Variable global para guardar las "huellas digitales" de los elementos
 window.mapaIA = new Map();
 
+// ---------------------------------------------------------
+// OBTENER EL DOM LIMPIO CON IDS OPTIMIZADOS Y ELEMENTOS RELEVANTES
+// ---------------------------------------------------------
 function obtenerDOM() {
   window.mapaIA.clear(); // Limpiar el mapa anterior
   let idCounter = 1;
@@ -12,21 +15,20 @@ function obtenerDOM() {
   const idsAntiguos = document.querySelectorAll("[data-ia-id]");
   idsAntiguos.forEach((el) => el.removeAttribute("data-ia-id"));
 
-  function esVisible(el) {
-    const style = window.getComputedStyle(el);
-    return (
-      style.display !== "none" &&
-      style.visibility !== "hidden" &&
-      style.opacity !== "0" &&
-      el.offsetWidth > 0 &&
-      el.offsetHeight > 0
-    );
-  }
-
   // Recorrer todos los elementos
   const todos = document.body.querySelectorAll("*");
 
+  // Identificar overlay para ignorarlo
+  const overlay = document.getElementById("asistente-overlay");
+
   todos.forEach((el) => {
+    // Si el elemento es parte del contenedor se ignora
+    if (overlay && overlay.contains(el)) return;
+    if (el.id === "asistente-overlay") return;
+
+    // Se ignora el cuadro de resaltado de elementos
+    if (el.id === "ia-highlighter-overlay") return;
+
     if (!esVisible(el)) return;
 
     const tag = el.tagName.toLowerCase();
@@ -57,7 +59,15 @@ function obtenerDOM() {
         "";
       texto = texto.replace(/\s+/g, " ").trim().substring(0, 60);
 
-      // Guardamos la "Huella Digital" en memoria por si el DOM cambia
+      // Detectar si el elemento ya está activo/seleccionado ---
+      const esActivo =
+        el.getAttribute("aria-current") === "page" ||
+        el.classList.contains("active") ||
+        el.classList.contains("selected");
+
+      if (esActivo) texto += " (SELECCIONADO ACTUALMENTE)";
+
+      // Guardar la "Huella Digital" en memoria por si el DOM cambia
       window.mapaIA.set(id, {
         referencia: el,
         tag: tag,
@@ -76,8 +86,11 @@ function obtenerDOM() {
   return JSON.stringify(elementosParaGemini);
 }
 
+// ---------------------------------------------------------
+// BUSCAR EL ELEMENTO DADO EL ID DE GEMINI (IDS OPTIMIZADOS)
+// ---------------------------------------------------------
 function buscarElementoRobusto(idGemini) {
-  // 1. Limpieza del ID: solo me quedo con "10"
+  // Limpieza del ID: solo me quedo con "10"
   let id = idGemini.toString().replace(/[^0-9]/g, "");
   id = parseInt(id, 10);
 
@@ -88,7 +101,7 @@ function buscarElementoRobusto(idGemini) {
 
   // INTENTO 1: Búsqueda rápida por atributo
   let el = document.querySelector(`[data-ia-id="${id}"]`);
-if (el && document.body.contains(el)) {
+  if (el && document.body.contains(el)) {
     console.log(`Encontrado por ID directo: ${id}`);
     el.scrollIntoView({ behavior: "smooth", block: "center" });
     return el;
@@ -128,7 +141,16 @@ if (el && document.body.contains(el)) {
   return null;
 }
 
-// Función auxiliar simple para saber si es visible (para el fallback)
+// ---------------------------------------------------------
+// FUNCIÓN AUXILIAR SIMPLE PARA SABER SI ES VISIBLE (PARA EL FALLBACK)
+// ---------------------------------------------------------
 function esVisible(el) {
-  return el.offsetWidth > 0 && el.offsetHeight > 0;
+  const style = window.getComputedStyle(el);
+  return (
+    style.display !== "none" &&
+    style.visibility !== "hidden" &&
+    style.opacity !== "0" &&
+    el.offsetWidth > 0 &&
+    el.offsetHeight > 0
+  );
 }
