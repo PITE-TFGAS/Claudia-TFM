@@ -11,7 +11,7 @@ function iniciarChat() {
   const input = document.querySelector(".asistente-input");
 
   input.placeholder =
-    "Escribe lo que quieres hacer… Ej: reservar un vuelo, iniciar sesión";
+    "Escribe lo que quieres hacer…";
 
   añadirMensaje("assistant", "Hola ✨ ¿Qué quieres hacer en esta página?");
 

@@ -1,46 +1,134 @@
 // ESTE SCRIPT HACE TODO LO QUE TIENE QUE VER CON EL DOM
+
+// Variable global para guardar las "huellas digitales" de los elementos
+window.mapaIA = new Map();
+
 function obtenerDOM() {
-  const clone = document.body.cloneNode(true);
-  clone.querySelectorAll("script, style, noscript").forEach(e => e.remove());
-  let html = clone.innerHTML;
-  if (html.length > 10000) html = html.slice(0, 10000);
-  return html;
+  window.mapaIA.clear(); // Limpiar el mapa anterior
+  let idCounter = 1;
+  const elementosParaGemini = [];
+
+  // Función para limpiar Ids antiguos
+  const idsAntiguos = document.querySelectorAll("[data-ia-id]");
+  idsAntiguos.forEach((el) => el.removeAttribute("data-ia-id"));
+
+  function esVisible(el) {
+    const style = window.getComputedStyle(el);
+    return (
+      style.display !== "none" &&
+      style.visibility !== "hidden" &&
+      style.opacity !== "0" &&
+      el.offsetWidth > 0 &&
+      el.offsetHeight > 0
+    );
+  }
+
+  // Recorrer todos los elementos
+  const todos = document.body.querySelectorAll("*");
+
+  todos.forEach((el) => {
+    if (!esVisible(el)) return;
+
+    const tag = el.tagName.toLowerCase();
+    // Elementos que no importan
+    if (["script", "style", "noscript", "meta"].includes(tag)) return;
+
+    // Selector elementos usualmente interactivos
+    const esInteractivo =
+      tag === "a" ||
+      tag === "button" ||
+      tag === "input" ||
+      tag === "select" ||
+      tag === "textarea" ||
+      el.getAttribute("role") === "button" ||
+      el.onclick != null ||
+      // SPAs
+      window.getComputedStyle(el).cursor === "pointer";
+
+    if (esInteractivo) {
+      const id = idCounter++;
+      el.setAttribute("data-ia-id", id);
+
+      // Textos limpios
+      let texto =
+        el.innerText ||
+        el.getAttribute("aria-label") ||
+        el.getAttribute("placeholder") ||
+        "";
+      texto = texto.replace(/\s+/g, " ").trim().substring(0, 60);
+
+      // Guardamos la "Huella Digital" en memoria por si el DOM cambia
+      window.mapaIA.set(id, {
+        referencia: el,
+        tag: tag,
+        texto: texto,
+        clases: el.className,
+      });
+
+      elementosParaGemini.push({
+        id: id,
+        tag: tag,
+        text: texto || "Elemento interactivo",
+      });
+    }
+  });
+
+  return JSON.stringify(elementosParaGemini);
 }
 
-function buscarElementoRobusto(selector, descripcion) {
-  if (!selector) selector = "";
-  selector = selector.trim();
+function buscarElementoRobusto(idGemini) {
+  // 1. Limpieza del ID: solo me quedo con "10"
+  let id = idGemini.toString().replace(/[^0-9]/g, "");
+  id = parseInt(id, 10);
 
-  if (selector) {
-    try {
-      const el = document.querySelector(selector);
-      if (el) return el;
-    } catch {}
+  if (!id) {
+    console.error("ID inválido recibido:", idGemini);
+    return null;
   }
 
-  const keywords = ["accede","acceder","iniciar","login","entrar","perfil","account"];
-  const ref = (selector + " " + (descripcion || "")).toLowerCase();
-  const elements = document.querySelectorAll(
-    "a, button, [role=button], input[type=submit], input[type=button]"
+  // INTENTO 1: Búsqueda rápida por atributo
+  let el = document.querySelector(`[data-ia-id="${id}"]`);
+if (el && document.body.contains(el)) {
+    console.log(`Encontrado por ID directo: ${id}`);
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    return el;
+  }
+
+  console.warn(
+    `ID ${id} perdido (React refrescó el DOM). Iniciando protocolo de recuperación...`,
   );
 
-  let best = null, scoreMax = 0;
+  // INTENTO 2: Usar el mapa de seguridad (fallback)
+  const datosBackup = window.mapaIA.get(id);
 
-  for (const el of elements) {
-    const t = (el.textContent || "").toLowerCase();
-    const aria = (el.getAttribute("aria-label") || "").toLowerCase();
-    let score = 0;
-
-    for (const k of keywords) {
-      if (t.includes(k)) score += 3;
-      if (aria.includes(k)) score += 2;
-      if (ref.includes(k)) score += 1;
-    }
-
-    if (score > scoreMax) {
-      scoreMax = score;
-      best = el;
-    }
+  if (!datosBackup) {
+    console.error("No hay datos de respaldo para este ID.");
+    return null;
   }
-  return best;
+
+  // Buscar un elemento que se parezca al original (mismo Tag y mismo Texto)
+  const candidatos = Array.from(document.querySelectorAll(datosBackup.tag));
+
+  // Filtrar el candidato que tenga el mismo texto y clases
+  el = candidatos.find((c) => {
+    const textoC = (c.innerText || c.getAttribute("aria-label") || "")
+      .replace(/\s+/g, " ")
+      .trim();
+    return textoC.includes(datosBackup.texto) && esVisible(c);
+  });
+
+  if (el) {
+    console.log("Elemento recuperado por huella digital (texto/tag).");
+    el.setAttribute("data-ia-id", id);
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    return el;
+  }
+
+  console.error("Imposible recuperar el elemento. La página cambió demasiado.");
+  return null;
+}
+
+// Función auxiliar simple para saber si es visible (para el fallback)
+function esVisible(el) {
+  return el.offsetWidth > 0 && el.offsetHeight > 0;
 }
