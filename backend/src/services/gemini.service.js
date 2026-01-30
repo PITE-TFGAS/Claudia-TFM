@@ -38,7 +38,7 @@ export async function callGeminiStep({ goal, dom, phase, lastSuggestedId, lastSu
   // Preparación de datos legibles
   const historyText = history && history.length > 0 ? history.join("\n") : "Sin historial previo.";
   
-  //console.log(historyText)
+  console.log(historyText)
 
   const clickedDesc = clickedInfo 
     ? `ID: ${clickedInfo.id}, Texto: "${clickedInfo.text}", Tag: <${clickedInfo.tag}>` 

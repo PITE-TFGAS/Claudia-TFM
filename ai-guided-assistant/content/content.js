@@ -8,6 +8,10 @@ let lastSuggestedId = null;
 let lastSuggestedText = ""; 
 let actionHistory = [];
 
+// Variable para controlar el "Debounce"
+let debounceTimer = null;
+const DEBOUNCE_DELAY = 2000; // 2 segundos
+
 // Comprobar si hay una sesión pendiente (se ejecuta al cargar una pág nueva)
 chrome.storage.local.get(["asistente_goal", "asistente_status"], async (res) => {
   if (res.asistente_goal && res.asistente_status === "active") {
@@ -53,50 +57,43 @@ chrome.runtime.onMessage.addListener(async (message) => {
 // FUNCIÓN CENTRAL DE LA COMUNICACIÓN
 // ---------------------------------------------------------
 async function ejecutarCicloIA(phase, clickedData) {
-  const dom = obtenerDOM();
-
-  // Si hubo una acción del usuario (click), la añadimos al historial antes de llamar a la IA
-  if (clickedData) {
-      const entry = `Usuario pulsó: "${clickedData.text}" (<${clickedData.tag}>)`;
-      actionHistory.push(entry);
-      chrome.storage.local.set({ asistente_history: actionHistory });
-  } else if (phase === "navigation_completed") {
-      actionHistory.push("Navegador: Página recargada/cambiada.");
-  }
-
-  // Feedback visual
+  const dom = obtenerDOM(); 
+  
+  // Registrar cambios de navegación
   if (phase === "navigation_completed") {
-    chrome.runtime.sendMessage({
-      type: "SHOW_DESCRIPTION_OVERLAY",
-      descripcion: "Analizando la nueva página... 🧐",
-    });
+      actionHistory.push("Navegador: Página recargada/cambiada.");
+      chrome.storage.local.set({ asistente_history: actionHistory });
   }
 
-  // Intentar llamada a la IA
-  try {
-    const respuesta = await new Promise((resolve) => {
-      chrome.runtime.sendMessage(
-        {
-          type: "CALL_AI_STEP",
-          payload: {
-            goal: currentGoal,
-            dom: dom,
-            phase: phase, 
-            lastSuggestedId: lastSuggestedId,
-            lastSuggestedText: lastSuggestedText,
-            clickedInfo: clickedData,
-            history: actionHistory,
-            url: window.location.href,
-            title: document.title
-          },
-        },
-        resolve
-      );
-    });
+  // Feedback visual si estamos cargando página nueva
+  if (phase === "navigation_completed") {
+      chrome.runtime.sendMessage({
+          type: "SHOW_DESCRIPTION_OVERLAY",
+          descripcion: "Analizando la nueva página... 🧐",
+      });
+  }
 
-    procesarRespuestaIA(respuesta);
+  try {
+      const respuesta = await new Promise((resolve) => {
+          chrome.runtime.sendMessage({
+              type: "CALL_AI_STEP",
+              payload: {
+                  goal: currentGoal,
+                  dom: dom,
+                  phase: phase, 
+                  lastSuggestedId: lastSuggestedId,
+                  lastSuggestedText: lastSuggestedText,
+                  clickedInfo: clickedData,
+                  history: actionHistory,
+                  // Información de contexto vital
+                  url: window.location.href,
+                  title: document.title
+              },
+          }, resolve);
+      });
+      procesarRespuestaIA(respuesta);
   } catch (err) {
-    console.error("Error ciclo IA", err);
+      console.error("Error ciclo IA", err);
   }
 }
 
@@ -185,31 +182,106 @@ document.addEventListener("click", (e) => {
     // Solo actuamos si hay una meta activa
     if (!currentGoal) return;
 
+    // Comprobar que el click cayó en un elemento
+    const el = e.target.closest("[data-ia-id]");
+
+    // Si el click es en un espacio vacío ignoro
+    if (!el) {
+        console.log("Click en zona vacía ignorado (Protección para mayores).");
+        return; 
+    }
+
     limpiarResaltado();
 
+    let clickedInfo = null;
+    const id = parseInt(el.getAttribute("data-ia-id"));
+    const infoMapa = window.mapaIA ? window.mapaIA.get(id) : null;
+      
+    clickedInfo = {
+        id: id,
+        text: infoMapa ? infoMapa.texto : (el.innerText || "").substring(0, 50),
+        tag: infoMapa ? infoMapa.tag : el.tagName.toLowerCase()
+    };
+
+    // --- LÓGICA DE ACUMULACIÓN (DEBOUNCE) ---
+    
+    // Registramos el click válido
+    const entry = `Usuario pulsó: "${clickedInfo.text}" (<${clickedInfo.tag}>)`;
+    actionHistory.push(entry);
+    chrome.storage.local.set({ asistente_history: actionHistory });
+
+    console.log(`Click válido: ${clickedInfo.text}. Temporizador iniciado.`);
+
+    if (debounceTimer) {
+        clearTimeout(debounceTimer);
+    }
+
+    // Feedback visual
+    chrome.runtime.sendMessage({
+        type: "SHOW_DESCRIPTION_OVERLAY",
+        descripcion: "Observando navegación rápida... 👀"
+    });
+
+    debounceTimer = setTimeout(() => {
+        console.log("Usuario detenido. Enviando historial acumulado a la IA.");
+        debounceTimer = null;
+        ejecutarCicloIA("follow_up", clickedInfo); 
+    }, DEBOUNCE_DELAY);
+
+}, true); // Capture phase
+
+// ---------------------------------------------------------
+// DETECTOR DE TECLA "ENTER"
+// ---------------------------------------------------------
+document.addEventListener("keydown", (e) => {
+    // Solo nos interesa la tecla ENTER
+    if (e.key !== "Enter") return;
+    
+    if (!currentGoal) return;
+
+    // Saber dónde está escribiendo el usuario
     const el = e.target.closest("[data-ia-id]");
     let clickedInfo = null;
 
     if (el) {
       const id = parseInt(el.getAttribute("data-ia-id"));
-      
-      // Intentamos sacar la info del mapa (más seguro) o del elemento directo
       const infoMapa = window.mapaIA ? window.mapaIA.get(id) : null;
+      
+      const valorEscrito = el.value || ""; 
       
       clickedInfo = {
         id: id,
-        text: infoMapa ? infoMapa.texto : (el.innerText || "").substring(0, 50),
+        text: (infoMapa ? infoMapa.texto : "") + ` (Escribió: "${valorEscrito}")`,
         tag: infoMapa ? infoMapa.tag : el.tagName.toLowerCase()
       };
     } else {
-      // Click fuera de elementos controlados
-      clickedInfo = { id: null, text: "Zona vacía", tag: "body" };
+      clickedInfo = { id: null, text: "Enter global", tag: "body" };
     }
 
-    // Esperamos 1 segundo para que la web procese el click
-    setTimeout(() => {
-      console.log(`Usuario pulsó: "${clickedInfo.text}" (ID: ${clickedInfo.id})`);
-      ejecutarCicloIA("follow_up", clickedInfo);
-    }, 1000);
+    // --- LÓGICA COMPARTIDA DE DEBOUNCE ---
 
-  }, true); // Capture phase
+    const entry = `Usuario pulsó ENTER en: "${clickedInfo.text}"`;
+    actionHistory.push(entry);
+    chrome.storage.local.set({ asistente_history: actionHistory });
+
+    console.log(`ENTER registrado: ${clickedInfo.text}. Reiniciando temporizador.`);
+
+    if (debounceTimer) {
+        clearTimeout(debounceTimer);
+    }
+
+    // Mostramos feedback
+    chrome.runtime.sendMessage({
+        type: "SHOW_DESCRIPTION_OVERLAY",
+        descripcion: "Procesando escritura... ⌨️"
+    });
+
+    // Programamos la llamada a la IA
+    debounceTimer = setTimeout(() => {
+        console.log("Usuario terminó de escribir/enviar. Llamando a la IA.");
+        debounceTimer = null;
+        
+        ejecutarCicloIA("follow_up", clickedInfo); 
+    }, DEBOUNCE_DELAY);
+
+}, true);
