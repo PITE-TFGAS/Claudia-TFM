@@ -1,199 +1,151 @@
-// ESTE SCRIPT GESTIONA EL CHAT = INPUTS Y MENSAJES
+// SCRIPT ENCARGADO DE GESTIONAR EL CHAT
+
+console.log("Chat Handler loaded");
 
 // ---------------------------------------------------------
-// LISTENER DE MENSAJES NUEVOS
+// LISTENER GLOBAL DE MENSAJES (Feedback IA)
 // ---------------------------------------------------------
 chrome.runtime.onMessage.addListener((message) => {
-  if (message.type === "SHOW_DESCRIPTION_OVERLAY") {
-    // 'true' indica que este mensaje debe guardarse en el historial
-    añadirMensaje("assistant", message.descripcion, true);
-  }
+    if (message.type === "SHOW_DESCRIPTION_OVERLAY") {
+        guardarYMostrarMensaje("assistant", message.descripcion);
+    }
 });
 
 // ---------------------------------------------------------
-// FUNCIÓN QUE RENDERIZA EL CHAT Y MIRA EL INPUT DEL USER
+// FUNCIÓN PRINCIPAL DE INICIO
 // ---------------------------------------------------------
 function iniciarChat() {
-  // Intenta buscar los elementos clave
-  const input = document.querySelector(".asistente-input");
-  const messagesContainer = document.querySelector(".asistente-messages");
-  const btnReset = document.querySelector("#btn-nueva-tarea");
+    // Esperar a que el UI exista
+    if (!document.querySelector(".asistente-input")) {
+        setTimeout(iniciarChat, 100);
+        return;
+    }
 
-  // --- LÓGICA NUEVA META ---
-  if (btnReset) {
-      const newBtn = btnReset.cloneNode(true);
-      btnReset.parentNode.replaceChild(newBtn, btnReset);
+    const { input } = window.ChatUI.refs;
+    input.placeholder = "Escribe lo que quieres hacer…";
 
-      newBtn.addEventListener("click", () => {
-          // Feedback visual inmediato
-          const messagesContainer = document.querySelector(".asistente-messages");
-          messagesContainer.innerHTML = "";
-          añadirMensaje("assistant", "¡Vale! Empezamos de cero. ✨ ¿Qué quieres hacer ahora?", false);
-          
-          if (window.resetMeta) window.resetMeta(); 
+    // Configuramos las 3 partes clave por separado
+    setupResetButton();
+    setupInputListener(input);
+    restoreChatHistory();
+}
 
-          // Limpiar Storage (Memoria Lógica)
-          chrome.storage.local.remove(["asistente_goal", "asistente_status", "asistente_history", "asistente_chat_history"], () => {
-              
-              // Avisar al Content Script
-              chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
-                  if (tabs[0]) {
-                      chrome.tabs.sendMessage(tabs[0].id, { type: "RESET_SESSION" });
-                  }
-              });
-          });
-      });
-  }
+// ---------------------------------------------------------
+// BOTÓN DE REINICIO
+// ---------------------------------------------------------
+function setupResetButton() {
+    const { btnReset } = window.ChatUI.refs;
+    if (!btnReset) return;
 
-  // Si el HTML aún no está listo, espera 100ms.
-  if (!input || !messagesContainer) {
-    // console.log("DOM del chat no listo todavía. Reintentando...");
-    setTimeout(iniciarChat, 100);
-    return;
-  }
+    // Clonar para limpiar listeners viejos
+    const newBtn = btnReset.cloneNode(true);
+    btnReset.parentNode.replaceChild(newBtn, btnReset);
 
-  input.placeholder = "Escribe lo que quieres hacer…";
+    newBtn.addEventListener("click", () => {
+        window.ChatUI.clear();
+        guardarYMostrarMensaje("assistant", "¡Vale! Empezamos de cero. ✨ ¿Qué quieres hacer ahora?", false); // false = no guardar este aviso específico si quieres
 
-  // Si hay historial y meta
-  chrome.storage.local.get(
-    ["asistente_chat_history", "asistente_goal"],
-    (result) => {
-      // Limpieza visual
-      messagesContainer.innerHTML = "";
+        if (window.resetMeta) window.resetMeta();
 
-      const history = result.asistente_chat_history || [];
-      const hayMisionActiva = !!result.asistente_goal;
+        // Limpiar lógica
+        chrome.storage.local.remove(["asistente_goal", "asistente_status", "asistente_history", "asistente_chat_history"], () => {
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: "RESET_SESSION" });
+            });
+        });
+    });
+}
 
-      // Lógica del Saludo, si NO hay historial Y TAMPOCO misión activa
-      if (history.length === 0 && !hayMisionActiva) {
-        añadirMensaje(
-          "assistant",
-          "Hola ✨ ¿Qué quieres hacer en esta página?",
-          false,
-        );
-      } else {
-        // Restauramos historial si existe
-        if (history.length > 0) {
-          // console.log("Restaurando historial...");
-          history.forEach((msg) => {
-            añadirMensaje(msg.tipo, msg.text, false);
-          });
+// ---------------------------------------------------------
+// RESTAURAR HISTORIAL
+// ---------------------------------------------------------
+function restoreChatHistory() {
+    chrome.storage.local.get(["asistente_chat_history", "asistente_goal"], (result) => {
+        window.ChatUI.clear();
+        
+        const history = result.asistente_chat_history || [];
+        const hayMision = !!result.asistente_goal;
+
+        if (history.length === 0 && !hayMision) {
+            // Mensaje de bienvenida (sin guardar en storage)
+            window.ChatUI.addMessage("assistant", "Hola ✨ ¿Qué quieres hacer en esta página?");
+        } else {
+            history.forEach(msg => window.ChatUI.addMessage(msg.tipo, msg.text));
+        }
+    });
+}
+
+// ---------------------------------------------------------
+// LISTENER DE ESCRIBIR
+// ---------------------------------------------------------
+function setupInputListener(originalInput) {
+    // Clonar para limpiar listeners viejos
+    const input = originalInput.cloneNode(true);
+    originalInput.parentNode.replaceChild(input, originalInput);
+    
+    // Foco automático (opcional, ayuda accesibilidad)
+    input.focus();
+
+    input.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter") return;
+        
+        const texto = input.value.trim();
+        if (!texto) return;
+
+        // Comandos de sistema
+        if (texto.toLowerCase() === "reiniciar" || texto.toLowerCase() === "salir") {
+            ejecutarReinicioTotal();
+            return;
         }
 
-        // Scroll al final
-        setTimeout(() => {
-          messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }, 50);
-      }
-    },
-  );
-  // ----------------------------------
-  // LISTENER DEL INPUT DEL USUARIO
-  // ----------------------------------
-  input.addEventListener("keydown", (e) => {
-    if (e.key !== "Enter") return;
+        window.ChatUI.clearInput();
+        guardarYMostrarMensaje("user", texto);
 
-    const texto = input.value.trim();
-    if (!texto) return;
-
-    // --- COMANDO SECRETO DE REINICIO ---
-    if (
-      texto.toLowerCase() === "reiniciar" ||
-      texto.toLowerCase() === "salir"
-    ) {
-      input.value = "";
-      añadirMensaje("user", texto, false);
-      añadirMensaje("assistant", "Reiniciando sistema... 🔄", false);
-
-      // Borra storage
-      chrome.storage.local.clear(() => {
-        // Recarga la página para matar variables en memoria
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      });
-      return;
-    }
-    // -----------------------------------
-
-    input.value = "";
-    // Mensaje del usuario
-    añadirMensaje("user", texto, true);
-
-    if (!isMetaFijada()) {
-      fijarMeta();
-      // Guardamos el estado activo de la misión
-      chrome.storage.local.set({
-        asistente_goal: texto,
-        asistente_status: "active",
-      });
-      chrome.runtime.sendMessage({ type: "USER_GOAL", goal: texto });
-    } else {
-      // Si ya hay meta, es una charla normal
-      // TO DO: charla normal
-      chrome.runtime.sendMessage(
-        { type: "USER_CHAT", message: texto },
-        (respuesta) => {
-          if (respuesta)
-            añadirMensaje("assistant", respuesta.text || "…", true);
-        },
-      );
-    }
-  });
-}
-
-// ---------------------------------------------------------
-/**
- * Función para añadir mensajes visualmente y al storage.
- * @param {'user'|'assistant'} tipo - Quién envía el mensaje.
- * @param {string} texto - El contenido.
- * @param {boolean} guardar - Si debe persistir en chrome.storage.
- */
-// ---------------------------------------------------------
-function añadirMensaje(tipo, texto, guardar = true) {
-  const container = document.querySelector(".asistente-messages");
-
-  // Si el contenedor no está listo, espera.
-  if (!container) {
-    // console.warn("Contenedor de chat no listo. Reintentando en 100ms...");
-    setTimeout(() => añadirMensaje(tipo, texto, guardar), 100);
-    return;
-  }
-
-  // Renderizado Visual
-  const msg = document.createElement("div");
-  msg.textContent = texto;
-  msg.className = `asistente-message asistente-message-${tipo}`;
-
-  // Estilos
-  msg.style.marginBottom = "8px";
-  msg.style.padding = "8px";
-  msg.style.borderRadius = "8px";
-  msg.style.maxWidth = "80%";
-  msg.style.wordWrap = "break-word";
-
-  if (tipo === "assistant") {
-    msg.style.backgroundColor = "#f0f0f0";
-    msg.style.alignSelf = "flex-start";
-    msg.style.color = "#333";
-    msg.style.marginRight = "auto";
-  } else {
-    msg.style.backgroundColor = "#d1e7dd";
-    msg.style.alignSelf = "flex-end";
-    msg.style.color = "#0f5132";
-    msg.style.marginLeft = "auto";
-  }
-
-  container.appendChild(msg);
-  // Scroll automático hacia abajo
-  container.scrollTop = container.scrollHeight;
-
-  // Guardado en Storage
-  if (guardar) {
-    chrome.storage.local.get("asistente_chat_history", (result) => {
-      const history = result.asistente_chat_history || [];
-      history.push({ tipo: tipo, text: texto });
-      chrome.storage.local.set({ asistente_chat_history: history });
+        procesarInputUsuario(texto);
     });
-  }
 }
+
+// ---------------------------------------------------------
+// LÓGICA DE NEGOCIO
+// ---------------------------------------------------------
+function procesarInputUsuario(texto) {
+    // Usamos overlayState.js
+    if (!window.isMetaFijada()) {
+        window.fijarMeta();
+        chrome.storage.local.set({ asistente_goal: texto, asistente_status: "active" });
+        chrome.runtime.sendMessage({ type: "USER_GOAL", goal: texto });
+    } else {
+        // Chat normal (si implementas chat libre en el futuro)
+        chrome.runtime.sendMessage({ type: "USER_CHAT", message: texto }, (res) => {
+            if (res) guardarYMostrarMensaje("assistant", res.text || "…");
+        });
+    }
+}
+
+// ---------------------------------------------------------
+// FUNCIÓN PARA REINICIAR TOTALMENTE EL PROGRAMA
+// ---------------------------------------------------------
+function ejecutarReinicioTotal() {
+    window.ChatUI.clearInput();
+    window.ChatUI.addMessage("assistant", "Reiniciando sistema... 🔄");
+    chrome.storage.local.clear(() => {
+        setTimeout(() => window.location.reload(), 1000);
+    });
+}
+
+// ---------------------------------------------------------
+// FUNCIÓN QUE PINTA Y GUARDA
+// ---------------------------------------------------------
+function guardarYMostrarMensaje(tipo, texto, guardar = true) {
+    window.ChatUI.addMessage(tipo, texto);
+    
+    if (guardar) {
+        chrome.storage.local.get("asistente_chat_history", (result) => {
+            const history = result.asistente_chat_history || [];
+            history.push({ tipo, text: texto });
+            chrome.storage.local.set({ asistente_chat_history: history });
+        });
+    }
+}
+
+window.iniciarChat = iniciarChat;

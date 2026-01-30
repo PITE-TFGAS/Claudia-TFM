@@ -23,6 +23,7 @@
         "content/content.js",
 
         "overlay/overlayState.js",
+        "overlay/chatUI.js",
         "overlay/chatHandler.js",
         "overlay/overlayUI.js",
         "overlay/overlay.js"
