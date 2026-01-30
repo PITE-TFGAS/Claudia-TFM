@@ -8,6 +8,13 @@ console.log("AI Cycle loaded");
 
 async function ejecutarCicloIA(phase, clickedData) {
     const State = window.AsistenteState;
+
+    // Si no hay meta (porque se ha reseteado), abortamos inmediatamente.
+    if (!State.currentGoal) {
+        console.warn("Intento de ejecutar ciclo IA sin meta activa. Abortando.");
+        return;
+    }
+
     const dom = obtenerDOM(); 
   
     // Registrar cambios de navegación

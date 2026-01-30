@@ -38,6 +38,8 @@ function gestionarInteraccionUsuario(clickedInfo, tipoAccion) {
 // ---------------------------------------------------------
 document.addEventListener("click", (e) => {
     const State = window.AsistenteState;
+
+    if (e.target.closest("#asistente-overlay")) return;
     if (!State.currentGoal) return;
 
     const el = e.target.closest("[data-ia-id]");
@@ -66,6 +68,9 @@ document.addEventListener("click", (e) => {
 // ---------------------------------------------------------
 document.addEventListener("keydown", (e) => {
     if (e.key !== "Enter") return;
+    
+    if (e.target.closest("#asistente-overlay")) return;
+
     const State = window.AsistenteState;
     if (!State.currentGoal) return;
 

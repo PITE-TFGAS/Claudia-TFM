@@ -12,3 +12,7 @@ function fijarMeta() {
 function resetMeta() {
   metaFijada = false;
 }
+
+window.isMetaFijada = isMetaFijada;
+window.fijarMeta = fijarMeta;
+window.resetMeta = resetMeta;

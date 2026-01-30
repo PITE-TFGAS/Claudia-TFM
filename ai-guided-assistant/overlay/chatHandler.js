@@ -17,6 +17,33 @@ function iniciarChat() {
   // Intenta buscar los elementos clave
   const input = document.querySelector(".asistente-input");
   const messagesContainer = document.querySelector(".asistente-messages");
+  const btnReset = document.querySelector("#btn-nueva-tarea");
+
+  // --- LÓGICA NUEVA META ---
+  if (btnReset) {
+      const newBtn = btnReset.cloneNode(true);
+      btnReset.parentNode.replaceChild(newBtn, btnReset);
+
+      newBtn.addEventListener("click", () => {
+          // Feedback visual inmediato
+          const messagesContainer = document.querySelector(".asistente-messages");
+          messagesContainer.innerHTML = "";
+          añadirMensaje("assistant", "¡Vale! Empezamos de cero. ✨ ¿Qué quieres hacer ahora?", false);
+          
+          if (window.resetMeta) window.resetMeta(); 
+
+          // Limpiar Storage (Memoria Lógica)
+          chrome.storage.local.remove(["asistente_goal", "asistente_status", "asistente_history", "asistente_chat_history"], () => {
+              
+              // Avisar al Content Script
+              chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+                  if (tabs[0]) {
+                      chrome.tabs.sendMessage(tabs[0].id, { type: "RESET_SESSION" });
+                  }
+              });
+          });
+      });
+  }
 
   // Si el HTML aún no está listo, espera 100ms.
   if (!input || !messagesContainer) {

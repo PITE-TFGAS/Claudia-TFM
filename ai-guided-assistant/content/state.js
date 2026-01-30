@@ -10,14 +10,14 @@ window.AsistenteState = {
     debounceTimer: null,
     DEBOUNCE_DELAY: 2000,
 
-    // Inicializar estado desde storage
+    // Inicializar estado desde el storage
     async loadFromStorage() {
         return new Promise((resolve) => {
             chrome.storage.local.get(["asistente_goal", "asistente_status", "asistente_history"], (res) => {
                 if (res.asistente_goal && res.asistente_status === "active") {
                     this.currentGoal = res.asistente_goal;
                     this.actionHistory = res.asistente_history || [];
-                    resolve(true); // Sesión activa restaurada
+                    resolve(true); 
                 } else {
                     resolve(false);
                 }
@@ -40,14 +40,26 @@ window.AsistenteState = {
         chrome.storage.local.set({ asistente_history: this.actionHistory });
     },
 
-    // Resetear todo (al terminar o empezar nueva meta)
+    // Resetear todo
     reset() {
+        // Eliminar temporizador
+        if (this.debounceTimer) {
+            console.log("Cancelando temporizador pendiente por reinicio...");
+            clearTimeout(this.debounceTimer);
+        }
+        
+        // Limpiar variables
         this.currentGoal = null;
         this.lastSuggestedId = null;
         this.lastSuggestedText = "";
         this.actionHistory = [];
         this.debounceTimer = null;
         
-        chrome.storage.local.remove(["asistente_goal", "asistente_status", "asistente_history"]);
+        // Limpiar Storage Lógico (pero no el chat visual)
+        chrome.storage.local.remove([
+            "asistente_goal", 
+            "asistente_status", 
+            "asistente_history"
+        ]);
     }
 };
