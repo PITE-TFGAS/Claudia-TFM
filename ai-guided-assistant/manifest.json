@@ -17,7 +17,9 @@
       "js": [
         "content/domProcessor.js",
         "content/highlighter.js",
-        "content/intentService.js",
+        "content/state.js",      
+        "content/aiCycle.js",     
+        "content/inputs.js",      
         "content/content.js",
 
         "overlay/overlayState.js",
