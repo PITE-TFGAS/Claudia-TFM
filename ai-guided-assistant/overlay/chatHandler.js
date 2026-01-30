@@ -27,21 +27,39 @@ function iniciarChat() {
 
   input.placeholder = "Escribe lo que quieres hacer…";
 
-  // si hay historial
-  chrome.storage.local.get("asistente_chat_history", (result) => {
-    const history = result.asistente_chat_history || [];
+  // Si hay historial y meta
+  chrome.storage.local.get(
+    ["asistente_chat_history", "asistente_goal"],
+    (result) => {
+      // Limpieza visual
+      messagesContainer.innerHTML = "";
 
-    if (history.length === 0) {
-      // Si es la primera vez, mensaje de bienvenida (no se guarda)
-      añadirMensaje("assistant", "Hola ✨ ¿Qué quieres hacer en esta página?", false);
-    } else {
-      console.log("Restaurando historial de chat...", history.length, "mensajes.");
-      // Repintar cada mensaje antiguo (sin volver a guardarlos)
-      history.forEach((msg) => {
-        añadirMensaje(msg.tipo, msg.text, false);
-      });
-    }
-  });
+      const history = result.asistente_chat_history || [];
+      const hayMisionActiva = !!result.asistente_goal;
+
+      // Lógica del Saludo, si NO hay historial Y TAMPOCO misión activa
+      if (history.length === 0 && !hayMisionActiva) {
+        añadirMensaje(
+          "assistant",
+          "Hola ✨ ¿Qué quieres hacer en esta página?",
+          false,
+        );
+      } else {
+        // Restauramos historial si existe
+        if (history.length > 0) {
+          // console.log("Restaurando historial...");
+          history.forEach((msg) => {
+            añadirMensaje(msg.tipo, msg.text, false);
+          });
+        }
+
+        // Scroll al final
+        setTimeout(() => {
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }, 50);
+      }
+    },
+  );
   // ----------------------------------
   // LISTENER DEL INPUT DEL USUARIO
   // ----------------------------------
@@ -50,21 +68,24 @@ function iniciarChat() {
 
     const texto = input.value.trim();
     if (!texto) return;
-    
+
     // --- COMANDO SECRETO DE REINICIO ---
-    if (texto.toLowerCase() === "reiniciar" || texto.toLowerCase() === "salir") {
-        input.value = "";
-        añadirMensaje("user", texto, false);
-        añadirMensaje("assistant", "Reiniciando sistema... 🔄", false);
-        
-        // Borra storage
-        chrome.storage.local.clear(() => {
-            // Recarga la página para matar variables en memoria
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
-        });
-        return;
+    if (
+      texto.toLowerCase() === "reiniciar" ||
+      texto.toLowerCase() === "salir"
+    ) {
+      input.value = "";
+      añadirMensaje("user", texto, false);
+      añadirMensaje("assistant", "Reiniciando sistema... 🔄", false);
+
+      // Borra storage
+      chrome.storage.local.clear(() => {
+        // Recarga la página para matar variables en memoria
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      });
+      return;
     }
     // -----------------------------------
 
@@ -88,7 +109,7 @@ function iniciarChat() {
         (respuesta) => {
           if (respuesta)
             añadirMensaje("assistant", respuesta.text || "…", true);
-        }
+        },
       );
     }
   });
@@ -116,7 +137,7 @@ function añadirMensaje(tipo, texto, guardar = true) {
   const msg = document.createElement("div");
   msg.textContent = texto;
   msg.className = `asistente-message asistente-message-${tipo}`;
-  
+
   // Estilos
   msg.style.marginBottom = "8px";
   msg.style.padding = "8px";
@@ -125,15 +146,15 @@ function añadirMensaje(tipo, texto, guardar = true) {
   msg.style.wordWrap = "break-word";
 
   if (tipo === "assistant") {
-      msg.style.backgroundColor = "#f0f0f0";
-      msg.style.alignSelf = "flex-start";
-      msg.style.color = "#333";
-      msg.style.marginRight = "auto";
+    msg.style.backgroundColor = "#f0f0f0";
+    msg.style.alignSelf = "flex-start";
+    msg.style.color = "#333";
+    msg.style.marginRight = "auto";
   } else {
-      msg.style.backgroundColor = "#d1e7dd"; 
-      msg.style.alignSelf = "flex-end";
-      msg.style.color = "#0f5132";
-      msg.style.marginLeft = "auto";
+    msg.style.backgroundColor = "#d1e7dd";
+    msg.style.alignSelf = "flex-end";
+    msg.style.color = "#0f5132";
+    msg.style.marginLeft = "auto";
   }
 
   container.appendChild(msg);
