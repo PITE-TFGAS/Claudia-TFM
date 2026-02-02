@@ -59,7 +59,8 @@ window.AsistenteState = {
         chrome.storage.local.remove([
             "asistente_goal", 
             "asistente_status", 
-            "asistente_history"
+            "asistente_history",
+            "ia_original_host"
         ]);
     }
 };

@@ -17,7 +17,8 @@
       "js": [
         "content/domProcessor.js",
         "content/highlighter.js",
-        "content/state.js",      
+        "content/state.js",     
+        "content/tabKeeper.js", 
         "content/aiCycle.js",     
         "content/inputs.js",      
         "content/content.js",
