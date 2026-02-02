@@ -8,65 +8,55 @@ console.log("Asistente Content Script Orchestrator Loaded");
 (async function init() {
   const State = window.AsistenteState;
 
-  // 1. Cargar estado de la sesión
+  // Cargar estado de la sesión
   const sessionRestored = await State.loadFromStorage();
 
   if (sessionRestored && State.currentGoal) {
-    console.log("Sesión activa detectada. Objetivo:", State.currentGoal);
+    console.log("Sesión activa. Objetivo:", State.currentGoal);
 
-    // --- LÓGICA AGRESIVA DE TABKEEPER ---
+    // TabKeeper
     if (window.TabKeeper) {
-      let attempts = 0;
-      const maxAttempts = 4; // Re-evaluar durante 4 segundos
+      let decision = await window.TabKeeper.evaluate(State.currentGoal);
+      if (decision === "KILL") {
+          matarPestana(); 
+          return;
+      }
 
-      const checkAndKill = async () => {
-        attempts++;
-        const decision = await window.TabKeeper.evaluate(State.currentGoal);
-
-        if (decision === "KILL") {
-          console.error("🚫 TabKeeper: Desviación detectada. Ejecutando cierre...");
-          
-          // Bloqueo visual inmediato para que el usuario no interactúe
-          document.documentElement.innerHTML = `
-            <div style="background:#f8f9fa; height:100vh; display:flex; align-items:center; justify-content:center; font-family:system-ui, sans-serif; color: #333;">
-                <div style="text-align:center; max-width: 400px; padding: 20px;">
-                    <div style="font-size: 50px; margin-bottom: 20px;">🛡️</div>
-                    <h1 style="color:#d32f2f; margin-bottom: 10px;">Pestaña no necesaria</h1>
-                    <p style="font-size:1.1em; line-height: 1.5;">He cerrado esta pestaña porque parece publicidad o no tiene relación con tu objetivo actual.</p>
-                </div>
-            </div>`;
-
-          // Orden real de cierre al background script
-          chrome.runtime.sendMessage({ type: "CLOSE_CURRENT_TAB" });
-          return true; // Fue aniquilada
-        }
-        return false;
-      };
-
-      // Primer chequeo inmediato
-      const isKilled = await checkAndKill();
+      // Buffer de seguridad
+      console.log("⏳ Esperando veredicto del Sheriff antes de gastar tokens...");
       
-      if (isKilled) return; // Detener ejecución si se cerró
+      // Feedback visual
+      if (document.body) {
+        const aviso = document.createElement('div');
+        aviso.id = 'ia-safety-check';
+        aviso.style.cssText = "position:fixed; top:0; left:0; width:100%; height:4px; background:gold; z-index:999999;";
+        document.body.appendChild(aviso);
+      }
 
-      // Bucle de vigilancia: Booking a veces carga el contenido relevante 1 o 2 segundos tarde
-      const monitor = setInterval(async () => {
-        const killed = await checkAndKill();
-        if (killed || attempts >= maxAttempts) {
-          clearInterval(monitor);
-        }
-      }, 1000);
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      const aviso = document.getElementById('ia-safety-check');
+      if (aviso) aviso.remove();
+
+      decision = await window.TabKeeper.evaluate(State.currentGoal);
+      
+      if (decision === "KILL") {
+          console.warn("🚫 TabKeeper: Detectado tras espera. Ahorrando tokens.");
+          matarPestana();
+          return
+      }
     }
 
-    // --- CONTINUAR CON LA UI SI LA PESTAÑA SOBREVIVIÓ ---
+    // Si se pasan los anteriores métodos se llama a la IA
+    console.log("Pestaña segura. Iniciando IA...");
     if (window.montarOverlay) await window.montarOverlay();
-
-    // Ejecutar ciclo de navegación (IA analiza el DOM actual)
+    
     if (window.ejecutarCicloIA) {
       await window.ejecutarCicloIA("navigation_completed", null);
     }
     
   } else {
-    // Caso: Extensión habilitada pero sin un objetivo (Goal) activo
+    // Caso sin sesión activa
     chrome.storage.local.get(["asistenteEnabled"], (res) => {
       if (res.asistenteEnabled && window.montarOverlay) {
         window.montarOverlay();
@@ -79,6 +69,24 @@ console.log("Asistente Content Script Orchestrator Loaded");
 // LISTENER DE MENSAJES (USER_GOAL)
 // ---------------------------------------------------------
 chrome.runtime.onMessage.addListener(async (message) => {
+  // --- REACTIVACIÓN TRAS CIERRE DE PESTAÑA ---
+  if (message.type === "TAB_KILLED_RESUME") {
+    console.log("Recibida orden de reanudar tras limpieza de pestañas.");
+    
+    // Feedback
+    if (message.descripcion) {
+      chrome.runtime.sendMessage({
+         type: "SHOW_DESCRIPTION_OVERLAY",
+         descripcion: message.descripcion
+      });
+    }
+
+    // Forzar análisis del DOM
+    if (window.ejecutarCicloIA) {
+      await window.ejecutarCicloIA("navigation_completed", null);
+    }
+  }
+
   // --- ESCUCHAR CUÁNDO SE ESTABLECE GOAL ---
   if (message.type === "USER_GOAL") {
     const State = window.AsistenteState;
@@ -113,3 +121,13 @@ chrome.storage.onChanged.addListener((changes) => {
     }
   }
 });
+
+// ---------------------------------------------------------
+// FUNCIÓN AUXILIAR PARA LIMPIAR
+// ---------------------------------------------------------
+function matarPestana() {
+    console.error("🚫 EJECUTANDO CIERRE...");
+    document.documentElement.innerHTML = "";
+    chrome.runtime.sendMessage({ type: "CLOSE_CURRENT_TAB" });
+}
+

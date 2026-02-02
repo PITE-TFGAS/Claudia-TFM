@@ -6,18 +6,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (sender.tab && sender.tab.id) {
       chrome.tabs.remove(sender.tab.id);
 
-      // Notificar
+      // avisar a content
       setTimeout(() => {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
           if (tabs[0]) {
+            // reaundar
             chrome.tabs.sendMessage(tabs[0].id, {
-              type: "SHOW_DESCRIPTION_OVERLAY",
-              descripcion:
-                "🛡️ He cerrado una ventana irrelevante para que no te pierdas.",
+              type: "TAB_KILLED_RESUME",
+              descripcion: "🛡️ He cerrado una ventana emergente irrelevante. Continuamos aquí.",
             });
           }
         });
-      }, 300);
+      }, 500);
     }
   }
 
@@ -94,15 +94,31 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         const originalHost = data.ia_original_host.toLowerCase();
         const goal = data.asistenteGoal.toLowerCase();
 
+        // Excepciones (mismo dominio, google, pagos...)
         if (currentHost.includes(originalHost.replace("www.", ""))) return;
         if (["google.", "bing.", "yahoo."].some(se => currentHost.includes(se))) return;
         if (/pay|secure|auth|login/i.test(urlStr)) return;
 
         const currentDomainBrand = currentHost.split('.').reverse()[1];
 
+        // LÓGICA DE CIERRE
         if (currentHost !== originalHost && !goal.includes(currentDomainBrand)) {
             console.error(`🚫 Sheriff: Matando pestaña extraña: ${currentHost}`);
+            
             chrome.tabs.remove(tabId);
+
+            setTimeout(() => {
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    const tabViva = tabs[0];
+                    if (tabViva) {
+                        console.log("Avisando a la pestaña original para que continúe...");
+                        chrome.tabs.sendMessage(tabViva.id, {
+                            type: "TAB_KILLED_RESUME",
+                            descripcion: "🛡️ He cerrado una ventana de publicidad. Sigo trabajando."
+                        });
+                    }
+                });
+            }, 500); 
         }
     }
 });
