@@ -7,95 +7,58 @@ window.mapaIA = new Map();
 // OBTENER EL DOM LIMPIO CON IDS OPTIMIZADOS Y ELEMENTOS RELEVANTES
 // ---------------------------------------------------------
 function obtenerDOM() {
-  window.mapaIA.clear(); // Limpiar el mapa anterior
+  window.mapaIA.clear();
   let idCounter = 1;
-  const elementosParaGemini = [];
+  const elementosParaIA = [];
 
-  // Función para limpiar Ids antiguos
   const idsAntiguos = document.querySelectorAll("[data-ia-id]");
   idsAntiguos.forEach((el) => el.removeAttribute("data-ia-id"));
 
-  // Recorrer todos los elementos
-  const todos = document.body.querySelectorAll("*");
-
-  // Identificar overlay para ignorarlo
-  const overlay = document.getElementById("asistente-overlay");
+  const todos = document.body.querySelectorAll("a, button, input, select, textarea, [role='button']");
 
   todos.forEach((el) => {
-    // Si el elemento es parte del contenedor se ignora
-    if (overlay && overlay.contains(el)) return;
-    if (el.id === "asistente-overlay") return;
-
-    // Se ignora el cuadro de resaltado de elementos
-    if (el.id === "ia-highlighter-overlay") return;
-
     if (!esVisible(el)) return;
 
-    const tag = el.tagName.toLowerCase();
-    // Elementos que no importan
-    if (["script", "style", "noscript", "meta"].includes(tag)) return;
+    const id = idCounter++;
+    el.setAttribute("data-ia-id", id);
 
-    // Selector elementos usualmente interactivos
-    const esInteractivo =
-      tag === "a" ||
-      tag === "button" ||
-      tag === "input" ||
-      tag === "select" ||
-      tag === "textarea" ||
-      el.getAttribute("role") === "button" ||
-      el.onclick != null ||
-      // SPAs
-      window.getComputedStyle(el).cursor === "pointer";
+    // Reducir textos
+    let texto = (el.innerText || el.getAttribute("aria-label") || el.getAttribute("placeholder") || "")
+                .replace(/\s+/g, " ")
+                .trim()
+                .substring(0, 40); 
 
-    if (esInteractivo) {
-      const id = idCounter++;
-      el.setAttribute("data-ia-id", id);
+    const esActivo = el.getAttribute("aria-current") === "page" || el.classList.contains("active");
+    if (esActivo) texto += "*";
 
-      // Textos limpios
-      let texto =
-        el.innerText ||
-        el.getAttribute("aria-label") ||
-        el.getAttribute("placeholder") ||
-        "";
-      texto = texto.replace(/\s+/g, " ").trim().substring(0, 60);
+    // Guardamos la huella digital completa en memoria (local)
+    window.mapaIA.set(id, {
+      referencia: el,
+      tag: el.tagName.toLowerCase(),
+      texto: texto
+    });
 
-      // Detectar si el elemento ya está activo/seleccionado ---
-      const esActivo =
-        el.getAttribute("aria-current") === "page" ||
-        el.classList.contains("active") ||
-        el.classList.contains("selected");
-
-      if (esActivo) texto += " (SELECCIONADO ACTUALMENTE)";
-
-      // Guardar la "Huella Digital" en memoria por si el DOM cambia
-      window.mapaIA.set(id, {
-        referencia: el,
-        tag: tag,
-        texto: texto,
-        clases: el.className,
-      });
-
-      elementosParaGemini.push({
-        id: id,
-        tag: tag,
-        text: texto || "Elemento interactivo",
-      });
-    }
+    // Ahorro de tokens enviando al backend mínima info
+    elementosParaIA.push({
+      i: id,
+      t: el.tagName.toLowerCase(),
+      x: texto || "btn"
+    });
   });
 
-  return JSON.stringify(elementosParaGemini);
+  return JSON.stringify(elementosParaIA);
 }
 
 // ---------------------------------------------------------
-// BUSCAR EL ELEMENTO DADO EL ID DE GEMINI (IDS OPTIMIZADOS)
+// BUSCAR EL ELEMENTO DADO EL ID (IDS OPTIMIZADOS)
 // ---------------------------------------------------------
-function buscarElementoRobusto(idGemini) {
+function buscarElementoRobusto(idIA) {
   // Limpieza del ID: solo me quedo con "10"
-  let id = idGemini.toString().replace(/[^0-9]/g, "");
+  let id = idIA.toString().replace(/[^0-9]/g, "");
   id = parseInt(id, 10);
 
   if (!id) {
-    console.error("ID inválido recibido:", idGemini);
+    console.error("ID inválido recibido:", idIA);
     return null;
   }
 
