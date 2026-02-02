@@ -82,9 +82,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     // Escuchamos el cambio de URL o cuando se completa la carga
     if (changeInfo.url || changeInfo.status === "complete") {
-        const data = await chrome.storage.local.get(["ia_original_host", "asistenteGoal"]);
+        const data = await chrome.storage.local.get(["ia_original_host", "asistente_goal"]);
         
-        if (!data.ia_original_host || !data.asistenteGoal) return;
+        if (!data.ia_original_host || !data.asistente_goal) return;
 
         const urlStr = changeInfo.url || tab.url;
         if (!urlStr) return;
@@ -92,7 +92,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         const url = new URL(urlStr);
         const currentHost = url.hostname.toLowerCase();
         const originalHost = data.ia_original_host.toLowerCase();
-        const goal = data.asistenteGoal.toLowerCase();
+        const goal = data.asistente_goal.toLowerCase();
 
         // Excepciones (mismo dominio, google, pagos...)
         if (currentHost.includes(originalHost.replace("www.", ""))) return;
@@ -103,7 +103,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
         // LÓGICA DE CIERRE
         if (currentHost !== originalHost && !goal.includes(currentDomainBrand)) {
-            console.error(`🚫 Sheriff: Matando pestaña extraña: ${currentHost}`);
+            console.error(`Sheriff: Matando pestaña extraña: ${currentHost}`);
             
             chrome.tabs.remove(tabId);
 

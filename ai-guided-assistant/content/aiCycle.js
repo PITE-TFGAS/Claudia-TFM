@@ -16,7 +16,7 @@ async function ejecutarCicloIA(phase, clickedData) {
     }
 
     const dom = obtenerDOM(); 
-  
+
     // Registrar cambios de navegación
     if (phase === "navigation_completed") {
         State.addToHistory("Navegador: Página recargada/cambiada.");
@@ -47,6 +47,15 @@ async function ejecutarCicloIA(phase, clickedData) {
                 },
             }, resolve);
         });
+
+        // Si el usuario pulsó RESET mientras esperábamos, currentGoal ahora es NULL
+
+        if (!State.currentGoal) {
+            console.log("Respuesta IA ignorada: Sesión reiniciada.");
+            limpiarResaltado();
+            return;
+        }
+
         procesarRespuestaIA(respuesta);
     } catch (err) {
         console.error("Error ciclo IA", err);
@@ -59,6 +68,11 @@ async function ejecutarCicloIA(phase, clickedData) {
 function procesarRespuestaIA(respuesta) {
     if (!respuesta) return;
     const State = window.AsistenteState;
+
+    if (!State.currentGoal) {
+        limpiarResaltado();
+        return;
+    }
 
     if (respuesta.feedback) {
         chrome.runtime.sendMessage({

@@ -18,7 +18,7 @@ window.TabKeeper = {
             if (!this.isSearchEngine(currentHostname)) {
                 await chrome.storage.local.set({ 
                     ia_original_host: currentHostname,
-                    asistenteGoal: goal 
+                    asistente_goal: goal 
                 });
                 return "GO";
             }

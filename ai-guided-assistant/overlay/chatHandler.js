@@ -37,22 +37,21 @@ function setupResetButton() {
     const { btnReset } = window.ChatUI.refs;
     if (!btnReset) return;
 
-    // Clonar para limpiar listeners viejos
     const newBtn = btnReset.cloneNode(true);
     btnReset.parentNode.replaceChild(newBtn, btnReset);
 
     newBtn.addEventListener("click", () => {
         window.ChatUI.clear();
-        guardarYMostrarMensaje("assistant", "¡Vale! Empezamos de cero. ✨ ¿Qué quieres hacer ahora?", false); // false = no guardar este aviso específico si quieres
+        guardarYMostrarMensaje("assistant", "¡Vale! Empezamos de cero. ✨ ¿Qué quieres hacer ahora?", false);
 
         if (window.resetMeta) window.resetMeta();
 
-        // Limpiar lógica
-        chrome.storage.local.remove(["asistente_goal", "asistente_status", "asistente_history", "asistente_chat_history"], () => {
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { type: "RESET_SESSION" });
-            });
-        });
+        if (window.AsistenteState) {
+            console.log("Forzando reset directo del State...");
+            window.AsistenteState.reset(); 
+        }
+        
+        if (window.limpiarResaltado) window.limpiarResaltado();
     });
 }
 
@@ -66,8 +65,11 @@ function restoreChatHistory() {
         const history = result.asistente_chat_history || [];
         const hayMision = !!result.asistente_goal;
 
+        if (hayMision && window.fijarMeta) {
+            window.fijarMeta();
+        }
+
         if (history.length === 0 && !hayMision) {
-            // Mensaje de bienvenida (sin guardar en storage)
             window.ChatUI.addMessage("assistant", "Hola ✨ ¿Qué quieres hacer en esta página?");
         } else {
             history.forEach(msg => window.ChatUI.addMessage(msg.tipo, msg.text));
