@@ -17,6 +17,12 @@ function obtenerDOM() {
   const todos = document.body.querySelectorAll("a, button, input, select, textarea, [role='button']");
 
   todos.forEach((el) => {
+    // Si el elemento está dentro de nuestro overlay, saltar.
+    if (el.closest("#asistente-overlay")) return; 
+    
+    // También ignorar el propio cuadro de resaltado
+    if (el.id === "ia-highlighter-overlay") return;
+
     if (!esVisible(el)) return;
 
     const id = idCounter++;

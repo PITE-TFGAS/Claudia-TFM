@@ -4,32 +4,41 @@
 // RESALTA EL ELEMENTO PASADO POR PARÁMETRO
 // ---------------------------------------------------------
 function resaltarElemento(el) {
-  // Limpiar cualquier resaltado anterior para que no se acumulen
+  // limpiar resaltados anteriores
   limpiarResaltado();
 
   const r = el.getBoundingClientRect();
+
+  const scrollTop = window.scrollY || document.documentElement.scrollTop;
+  const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+
   const padding = 5;
 
   const o = document.createElement("div");
-  
-  // id para manipularlo luego
-  o.id = "ia-highlighter-overlay"; 
+  // id para manipularlo
+  o.id = "ia-highlighter-overlay";
 
   Object.assign(o.style, {
-    position: "fixed", 
-    top: (r.top - padding) + "px",
-    left: (r.left - padding) + "px",
-    width: (r.width + padding * 2) + "px",
-    height: (r.height + padding * 2) + "px",
-    border: "4px solid gold",
-    boxShadow: "0 0 20px gold",
-    zIndex: 999999,
+    position: "absolute",
+    top: r.top + scrollTop - padding + "px",
+    left: r.left + scrollLeft - padding + "px",
+    width: r.width + padding * 2 + "px",
+    height: r.height + padding * 2 + "px",
+
+    // Estilos visuales
+    border: "4px solid #FFD700",
+    backgroundColor: "rgba(255, 215, 0, 0.1)",
+    boxShadow: "0 0 15px rgba(255, 215, 0, 0.6)",
+    zIndex: 999990,
     pointerEvents: "none",
     borderRadius: "6px",
-    transition: "all 0.3s ease"
+    transition: "all 0.2s ease-out",
   });
 
   document.body.appendChild(o);
+
+  // Scroll hacia el elemento
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 // ---------------------------------------------------------
