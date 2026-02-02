@@ -88,7 +88,7 @@ export async function callGeminiStep({ goal, dom, phase, lastSuggestedId, lastSu
   
   ${contextInfo}
 
-  DOM ACTUAL (Elementos interactivos):
+  DOM ACTUAL (i=id, t=tag, x=texto):
   ${dom}
 
   ---------------------------------------------------------
@@ -108,6 +108,7 @@ export async function callGeminiStep({ goal, dom, phase, lastSuggestedId, lastSu
   3. **GENERACIÓN DE PASOS:**
      - Si NO hemos terminado, selecciona el ID del elemento más lógico para avanzar.
   
+  El ID del elemento está en la propiedad "i".
   Responde SOLO JSON estricto:
   {
     "feedback": "Mensaje corto y natural.",

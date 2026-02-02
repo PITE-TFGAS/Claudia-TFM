@@ -1,5 +1,4 @@
 export function parseGeminiJSON(data) {
-
   const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!raw) return null;
 
@@ -17,6 +16,22 @@ export function parseGeminiJSON(data) {
     return JSON.parse(match[0]);
   } catch (e) {
     console.error("Error parseando JSON:", e);
+    return null;
+  }
+}
+
+export function parseGroqJSON(data) {
+  // En Groq la respuesta está en: choices[0].message.content
+  const raw = data?.choices?.[0]?.message?.content;
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error("Error parseando JSON de Groq:", e);
+    // Fallback por si acaso el modelo ignora el modo JSON
+    const match = raw.match(/\{[^]*\}/);
+    if (match) return JSON.parse(match[0]);
     return null;
   }
 }
