@@ -4,7 +4,7 @@
 window.mapaIA = new Map();
 
 // ---------------------------------------------------------
-// OBTENER EL DOM LIMPIO CON IDS OPTIMIZADOS Y ELEMENTOS RELEVANTES
+// OBTENER EL DOM LIMPIO 
 // ---------------------------------------------------------
 function obtenerDOM() {
   window.mapaIA.clear();
@@ -14,112 +14,233 @@ function obtenerDOM() {
   const idsAntiguos = document.querySelectorAll("[data-ia-id]");
   idsAntiguos.forEach((el) => el.removeAttribute("data-ia-id"));
 
-  const todos = document.body.querySelectorAll("a, button, input, select, textarea, [role='button']");
+  // Selectores semánticos
+  const selectores = [
+    "input:not([type='hidden'])",
+    "select",
+    "textarea",
+    "button",
+    "a",
+    "[role='button']",
+    "[role='combobox']",
+    "[role='listbox']",
+    "[role='gridcell']",
+    "[role='link']",
+    "[tabindex='0']",
+  ].join(", ");
+
+  const semanticos = Array.from(document.querySelectorAll(selectores));
+
+  // Elementos genéricos clickables 
+  const sospechosos = Array.from(
+    document.querySelectorAll("div, span, td, li, img, svg"),
+  );
+
+  const interactivosOcultos = sospechosos.filter((el) => {
+    if (el.matches(selectores)) return false; // Ya capturado
+    const estilo = window.getComputedStyle(el);
+    return estilo.cursor === "pointer";
+  });
+
+  const todos = [...new Set([...semanticos, ...interactivosOcultos])];
 
   todos.forEach((el) => {
-    // Si el elemento está dentro de nuestro overlay, saltar.
-    if (el.closest("#asistente-overlay")) return; 
-    
-    // También ignorar el propio cuadro de resaltado
+    // Filtros de seguridad
+    if (el.closest("#asistente-overlay")) return;
     if (el.id === "ia-highlighter-overlay") return;
-
     if (!esVisible(el)) return;
 
     const id = idCounter++;
     el.setAttribute("data-ia-id", id);
 
-    // Reducir textos
-    let texto = (el.innerText || el.getAttribute("aria-label") || el.getAttribute("placeholder") || "")
-                .replace(/\s+/g, " ")
-                .trim()
-                .substring(0, 40); 
+    // Análisis del elemento
+    let etiquetas = [];
+    let textoPrincipal = "";
 
-    const esActivo = el.getAttribute("aria-current") === "page" || el.classList.contains("active");
-    if (esActivo) texto += "*";
+    // Extracción de contexto
+    if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
+      let val = el.value;
+      const place = el.getAttribute("placeholder") || "";
 
-    // Guardamos la huella digital completa en memoria (local)
+      // Palabras comunes cuando el campo está vacío
+      const valoresPlaceholder = [
+        "Origen",
+        "Destino",
+        "Fecha",
+        "Ida",
+        "Vuelta",
+        "",
+        "Buscar",
+        "Salida",
+        "Llegada",
+        "Seleccionar",
+      ];
+      const valLimpio = (val || "").trim();
+
+      const esGenerico =
+        valoresPlaceholder.some(
+          (b) => b.toLowerCase() === valLimpio.toLowerCase(),
+        ) || val === place;
+
+      if (esGenerico) {
+        textoPrincipal = place || "Campo de texto";
+        etiquetas.push("VACÍO");
+      } else {
+        textoPrincipal = `${place} [TIENE VALOR: ${val}]`;
+      }
+
+      if ((el.type === "radio" || el.type === "checkbox") && el.checked)
+        etiquetas.push("MARCADO");
+    } else if (el.tagName === "SELECT") {
+      const opt = el.options[el.selectedIndex];
+      if (opt && !opt.text.toLowerCase().includes("selec")) {
+        textoPrincipal = `Selector [TIENE VALOR: ${opt.text}]`;
+      } else {
+        textoPrincipal = "Selector [VACÍO]";
+      }
+    } else {
+      textoPrincipal =
+        el.innerText || el.getAttribute("aria-label") || el.title || "";
+    }
+
+    // fechas
+    const identificadores = (
+      el.id +
+      " " +
+      (el.getAttribute("aria-label") || "")
+    ).toLowerCase();
+    const matchFecha = identificadores.match(/(\d{4}-\d{2}-\d{2})/);
+
+    if (matchFecha) {
+      etiquetas.push(`FECHA EXACTA: ${matchFecha[1]}`);
+    } else if (/^[0-9]{1,2}$/.test(textoPrincipal.trim())) {
+      // Verificar si es un calendario
+      const padreEstructural = el.closest("table, [role='grid'], [role='row']");
+      if (padreEstructural) {
+        etiquetas.push("DÍA CALENDARIO");
+      }
+    }
+
+    // Detección de precios
+    if (textoPrincipal.includes("€") || textoPrincipal.includes("$")) {
+      if (/\d/.test(textoPrincipal)) {
+        etiquetas.push("BOTÓN TARIFA");
+      }
+    }
+
+    // Detección del foco
+    if (el === document.activeElement) {
+      etiquetas.push("FOCO ACTUAL / ESCRIBIENDO");
+    }
+
+    // Detección del estado
+    if (
+      el.getAttribute("aria-selected") === "true" ||
+      el.getAttribute("aria-current") === "true" ||
+      el.getAttribute("aria-checked") === "true"
+    ) {
+      etiquetas.push("SELECCIONADO");
+    }
+
+    // Fallback a clases genéricas
+    else if (
+      el.classList.contains("active") ||
+      el.classList.contains("selected") ||
+      el.classList.contains("checked") ||
+      el.classList.contains("activo")
+    ) {
+      etiquetas.push("SELECCIONADO");
+    }
+
+    if (!textoPrincipal && etiquetas.length === 0) {
+      textoPrincipal = "Elemento interactivo";
+    }
+
+    const tagsStr = etiquetas.length > 0 ? `[${etiquetas.join(" | ")}]` : "";
+    let textoFinal = `${tagsStr} ${textoPrincipal}`.trim();
+    textoFinal = textoFinal.replace(/\s+/g, " ").substring(0, 100);
+
     window.mapaIA.set(id, {
       referencia: el,
       tag: el.tagName.toLowerCase(),
-      texto: texto
+      texto: textoFinal,
     });
 
-    // Ahorro de tokens enviando al backend mínima info
     elementosParaIA.push({
       i: id,
       t: el.tagName.toLowerCase(),
-      x: texto || "btn"
+      x: textoFinal,
     });
   });
+
+  // ---------------------------------------------------------
+  // LOG PARA DEPURAR
+  // ---------------------------------------------------------
+  console.log("🔍 SNAPSHOT PARA IA:", JSON.stringify(elementosParaIA, null, 2));
+  // ---------------------------------------------------------
 
   return JSON.stringify(elementosParaIA);
 }
 
 // ---------------------------------------------------------
-// BUSCAR EL ELEMENTO DADO EL ID (IDS OPTIMIZADOS)
+// BUSCAR ELEMENTO (SIMILITUD)
 // ---------------------------------------------------------
 function buscarElementoRobusto(idIA) {
-  // Limpieza del ID: solo me quedo con "10"
-  let id = idIA.toString().replace(/[^0-9]/g, "");
-  id = parseInt(id, 10);
+  let id = parseInt(idIA.toString().replace(/[^0-9]/g, ""), 10);
+  if (!id) return null;
 
-  if (!id) {
-    console.error("ID inválido recibido:", idIA);
-    return null;
-  }
-
-  // INTENTO 1: Búsqueda rápida por atributo
+  // Intento Directo
   let el = document.querySelector(`[data-ia-id="${id}"]`);
   if (el && document.body.contains(el)) {
-    console.log(`Encontrado por ID directo: ${id}`);
     el.scrollIntoView({ behavior: "smooth", block: "center" });
     return el;
   }
 
-  console.warn(
-    `ID ${id} perdido (React refrescó el DOM). Iniciando protocolo de recuperación...`,
-  );
+  // Fallback
+  const datos = window.mapaIA.get(id);
+  if (!datos) return null;
 
-  // INTENTO 2: Usar el mapa de seguridad (fallback)
-  const datosBackup = window.mapaIA.get(id);
-
-  if (!datosBackup) {
-    console.error("No hay datos de respaldo para este ID.");
-    return null;
-  }
-
-  // Buscar un elemento que se parezca al original (mismo Tag y mismo Texto)
-  const candidatos = Array.from(document.querySelectorAll(datosBackup.tag));
-
-  // Filtrar el candidato que tenga el mismo texto y clases
+  const candidatos = Array.from(document.querySelectorAll(datos.tag));
   el = candidatos.find((c) => {
-    const textoC = (c.innerText || c.getAttribute("aria-label") || "")
-      .replace(/\s+/g, " ")
+    if (!esVisible(c)) return false;
+
+    let textoC = (c.innerText || "").toLowerCase();
+    if (c.value) textoC += " " + c.value.toLowerCase();
+    if (c.getAttribute("aria-label"))
+      textoC += " " + c.getAttribute("aria-label").toLowerCase();
+
+    const originalLimpio = datos.texto
+      .toLowerCase()
+      .replace(/\[.*?\]/g, "")
       .trim();
-    return textoC.includes(datosBackup.texto) && esVisible(c);
+
+    return textoC.includes(originalLimpio) || originalLimpio.includes(textoC);
   });
 
   if (el) {
-    console.log("Elemento recuperado por huella digital (texto/tag).");
     el.setAttribute("data-ia-id", id);
     el.scrollIntoView({ behavior: "smooth", block: "center" });
     return el;
   }
-
-  console.error("Imposible recuperar el elemento. La página cambió demasiado.");
   return null;
 }
 
 // ---------------------------------------------------------
-// FUNCIÓN AUXILIAR SIMPLE PARA SABER SI ES VISIBLE (PARA EL FALLBACK)
+// HELPER: VISIBILIDAD REAL
 // ---------------------------------------------------------
 function esVisible(el) {
   const style = window.getComputedStyle(el);
+  const rect = el.getBoundingClientRect();
   return (
     style.display !== "none" &&
     style.visibility !== "hidden" &&
     style.opacity !== "0" &&
-    el.offsetWidth > 0 &&
-    el.offsetHeight > 0
+    rect.width > 0 &&
+    rect.height > 0 &&
+    rect.top < window.innerHeight &&
+    rect.bottom > 0
   );
 }
+
+window.obtenerDOM = obtenerDOM;
+window.buscarElementoRobusto = buscarElementoRobusto;

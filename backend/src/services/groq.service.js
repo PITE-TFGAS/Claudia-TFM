@@ -43,6 +43,7 @@ export async function callGroqStep({
   // --- FORZAR RECORTE PLAN GRATIS ---
   const domSeguro = truncateDOM(dom, 20000);
   // -------------------------------
+  console.log("🔍 SNAPSHOT PARA IA:", JSON.stringify(domSeguro, null, 2));
 
   const historyText =
     history && history.length > 0
@@ -51,6 +52,8 @@ export async function callGroqStep({
   const clickedDesc = clickedInfo
     ? `ID: ${clickedInfo.id}, Texto: "${clickedInfo.text}", Tag: <${clickedInfo.tag}>`
     : "Click en zona vacía o desconocida";
+
+  console.log(historyText);
 
   let contextInfo = `
   DATOS DE NAVEGACIÓN ACTUALES:
@@ -74,18 +77,31 @@ export async function callGroqStep({
   }
 
   const prompt = `
-  Eres un asistente inteligente de navegación web.
+  Eres un asistente de navegación web experto y generalista. Tu trabajo es ayudar al usuario a completar CUALQUIER objetivo en CUALQUIER sitio web.
+  
   OBJETIVO DEL USUARIO: "${goal}"
   
+  CONTEXTO:
   ${contextInfo}
 
   DOM ACTUAL (i=id, t=tag, x=texto):
   ${domSeguro}
 
-  INSTRUCCIONES DE RAZONAMIENTO:
-  1. VALIDACIÓN DE ACCIÓN: Si el texto pulsado es semánticamente igual al esperado (ej: "Buscar" e icono "Buscar"), es un ACIERTO.
-  2. ANÁLISIS DE FINALIZACIÓN: Si la URL o el Título indican que ya llegamos (ej: objetivo "Ir a Youtube" y url "youtube.com"), pon status: "completed".
-  3. GENERACIÓN DE PASOS: Si no hemos terminado, elige el ID más lógico.
+REGLAS DE RAZONAMIENTO:
+  
+  1. **ANÁLISIS DE COMPLETITUD (FORM VALIDATION):**
+     - Antes de pulsar botones de avance ("Buscar", "Continuar", "Pagar", "Enviar"), verifica que los campos lógicos necesarios estén rellenos.
+     - Si ves campos etiquetados como [VACÍO] que parecen importantes para el objetivo, pide al usuario que los rellene.
+     - Si el campo dice [TIENE VALOR: ...], asume que ya está hecho, salvo que sea incoherente con el objetivo.
+
+  2. **DETECCIÓN DE AMBIGÜEDAD (GAP ANALYSIS):**
+     - Busca opciones en el DOM que modifiquen el resultado (filtros, tipos de tarifa, variantes de producto, condiciones legales).
+     - Si el usuario NO especificó preferencia sobre esa opción en su objetivo, y la opción es crítica (ej: Precios, Tallas, Tipos de usuario), sugiérele que la revise.
+     - Ejemplo: Si el objetivo es "Comprar camiseta" y ves "Talla S, M, L", pregunta la talla. No asumas.
+
+  3. **COHERENCIA DE ACCIÓN:**
+     - Si la acción anterior del usuario fue exitosa (el historial muestra que rellenó el campo correctamente), PASA AL SIGUIENTE CAMPO. No le pidas repetir lo mismo.
+     - Si el usuario pulsó un elemento equivocado, explícale el error amablemente.
 
   El ID del elemento está en la propiedad "i".
   Responde estrictamente este JSON:
@@ -100,7 +116,7 @@ export async function callGroqStep({
     {
       role: "system",
       content:
-        "Eres un asistente de navegación web experto en accesibilidad para personas con bajas competencias digitales.",
+        "Eres un asistente de usabilidad web. Actúas como los ojos y el sentido común del usuario. Eres preciso, paciente y neutral.",
     },
     { role: "user", content: prompt },
   ];

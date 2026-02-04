@@ -62,7 +62,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // Llamar al backend (nuevo método paso a paso)
   if (message.type === "CALL_AI_STEP") {
-    fetch("http://localhost:3000/ai/stepGemini", {
+    fetch("http://localhost:3000/ai/stepGroq", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(message.payload),
