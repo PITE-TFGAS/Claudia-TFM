@@ -99,6 +99,12 @@ chrome.runtime.onMessage.addListener(async (message) => {
     State.currentGoal = message.goal;
     State.saveToStorage();
 
+    // Llamar al tabkeeper para que defina el host
+    if (window.TabKeeper) {
+        console.log("Inicializando TabKeeper para la nueva meta...");
+        await window.TabKeeper.evaluate(State.currentGoal);
+    }
+
     if (window.montarOverlay) await window.montarOverlay();
     await window.ejecutarCicloIA("start", null);
   }
