@@ -72,6 +72,21 @@ console.log("Asistente Content Script Orchestrator Loaded");
 // ---------------------------------------------------------
 chrome.runtime.onMessage.addListener(async (message) => {
 
+  // --- REACTIVACIÓN TRAS CIERRE TOTAL ---
+if (message.type === "SHOW_INITIAL_GREETING") {
+      console.log("👋 Recibida orden de saludo inicial (Modo Primera Vez).");
+      
+      if (window.montarOverlay) await window.montarOverlay();
+      if (window.AsistenteState) window.AsistenteState.reset();
+      if (window.limpiarResaltado) window.limpiarResaltado();
+
+      if (window.ChatUI) {
+          window.ChatUI.clear();
+          window.ChatUI.addMessage("assistant", message.text);
+      }
+      chrome.storage.local.remove("asistente_chat_history");
+  }
+
   // --- REACTIVACIÓN TRAS CIERRE DE PESTAÑA ---
   if (message.type === "TAB_KILLED_RESUME") {
     console.log("Recibida orden de reanudar tras limpieza de pestañas.");
