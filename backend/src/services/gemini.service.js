@@ -92,6 +92,16 @@ export async function callGeminiStep({ goal, dom, phase, lastSuggestedId, lastSu
   DOM ACTUAL (i=id, t=tag, x=texto):
   ${dom}
 
+  
+  INTERPRETACIÓN DE ETIQUETAS DEL DOM:
+  - [OFERTA_VUELO]: Botón para **seleccionar un vuelo**. Prioridad alta.
+  - [CALENDARIO_PRECIO]: Botón para cambiar de día. NO CLICAR salvo que la fecha sea incorrecta.
+  - [INFO_PASO]: Barra de progreso (ej: "Pago"). NO CLICAR, es solo información.
+  - [ACCION]: Elemento interactivo (Botón, Link, Input). Prioridad alta.
+  - [SELECCIONADO]: Elemento ya activo (Radio button marcado, Tab activa).
+  - [PRECIO]: Información económica crítica.
+  - [VACÍO]: Input que necesita ser rellenado.
+
   REGLAS DE RAZONAMIENTO:
   
   1. **ANÁLISIS DE COMPLETITUD (FORM VALIDATION):**

@@ -41,82 +41,88 @@ export async function callGroqStep({
   title,
 }) {
   // --- FORZAR RECORTE PLAN GRATIS ---
-  const domSeguro = truncateDOM(dom, 20000);
+  // Aumentamos un poco el límite si usas Llama 3 70b, soporta bastante contexto.
+  const domSeguro = truncateDOM(dom, 20000); 
   // -------------------------------
-  console.log("🔍 SNAPSHOT PARA IA:", JSON.stringify(domSeguro, null, 2));
-
-  const historyText =
-    history && history.length > 0
-      ? history.join("\n")
-      : "Sin historial previo.";
-  const clickedDesc = clickedInfo
-    ? `ID: ${clickedInfo.id}, Texto: "${clickedInfo.text}", Tag: <${clickedInfo.tag}>`
-    : "Click en zona vacía o desconocida";
-
-  console.log(historyText);
-
+  
+  const historyText = history && history.length > 0 ? history.slice(-5).join("\n") : "Inicio de sesión."; // Solo los últimos 5 pasos para no saturar
+  
   let contextInfo = `
-  DATOS DE NAVEGACIÓN ACTUALES:
-  - URL: "${url}"
-  - Título de la Página: "${title}"
-  HISTORIAL DE LA SESIÓN:
+  - URL ACTUAL: "${url}"
+  - TÍTULO: "${title}"
+  - HISTORIAL RECIENTE:
   ${historyText}
   `;
 
   if (phase === "start") {
-    contextInfo += `\nESTADO: Inicio de la tarea. Analiza el DOM y da el primer paso.`;
+    contextInfo += `\nESTADO: Acabamos de entrar. Analiza qué sitio es y cómo empezar.`;
   } else if (phase === "navigation_completed") {
-    contextInfo += `\nESTADO: Navegación completada (Página nueva). Analiza si llegamos al objetivo o cuál es el siguiente paso.`;
+    contextInfo += `\nESTADO: La página ha cambiado. Re-evalúa la situación.`;
   } else {
+    const clickStatus = clickedInfo 
+        ? `ÉXITO (El usuario clickó ID ${clickedInfo.id}: "${clickedInfo.text}")` 
+        : `FALLO/INCERTIDUMBRE (El usuario clickó algo desconocido)`;
+    
     contextInfo += `
-    ESTADO: Verificación de acción en la misma página.
-    COMPARATIVA DE ACCIÓN:
-    1. TU INSTRUCCIÓN ANTERIOR: ID Sugerido: ${lastSuggestedId}, Texto esperado: "${lastSuggestedText || "Cualquiera"}"
-    2. LO QUE HIZO EL USUARIO REALMENTE: ${clickedDesc}
+    ESTADO: Seguimos en la misma página tras una acción.
+    ACCIÓN ANTERIOR TUYA: Sugeriste ID ${lastSuggestedId} ("${lastSuggestedText}")
+    RESULTADO REAL: ${clickStatus}
     `;
   }
 
   const prompt = `
-  Eres un asistente de navegación web experto y generalista. Tu trabajo es ayudar al usuario a completar CUALQUIER objetivo en CUALQUIER sitio web.
+  Eres un Agente de Navegación Web Autónomo. Tu misión es cumplir el OBJETIVO del usuario paso a paso.
   
-  OBJETIVO DEL USUARIO: "${goal}"
+  OBJETIVO FINAL: "${goal}"
   
-  CONTEXTO:
+  CONTEXTO DE NAVEGACIÓN:
   ${contextInfo}
 
   DOM ACTUAL (i=id, t=tag, x=texto):
+  ---------------------------------------------------
   ${domSeguro}
+  ---------------------------------------------------
 
-REGLAS DE RAZONAMIENTO:
-  
-  1. **ANÁLISIS DE COMPLETITUD (FORM VALIDATION):**
-     - Antes de pulsar botones de avance ("Buscar", "Continuar", "Pagar", "Enviar"), verifica que los campos lógicos necesarios estén rellenos.
-     - Si ves campos etiquetados como [VACÍO] que parecen importantes para el objetivo, pide al usuario que los rellene.
-     - Si el campo dice [TIENE VALOR: ...], asume que ya está hecho, salvo que sea incoherente con el objetivo.
+  INTERPRETACIÓN DE ETIQUETAS DEL DOM:
+  - [OFERTA_VUELO]: Botón para **seleccionar un vuelo**. Prioridad alta.
+  - [CALENDARIO_PRECIO]: Botón para cambiar de día. NO CLICAR salvo que la fecha sea incorrecta.
+  - [INFO_PASO]: Barra de progreso (ej: "Pago"). NO CLICAR, es solo información.
+  - [ACCION]: Elemento interactivo (Botón, Link, Input). Prioridad alta.
+  - [SELECCIONADO]: Elemento ya activo (Radio button marcado, Tab activa).
+  - [PRECIO]: Información económica crítica.
+  - [VACÍO]: Input que necesita ser rellenado.
 
-  2. **DETECCIÓN DE AMBIGÜEDAD (GAP ANALYSIS):**
-     - Busca opciones en el DOM que modifiquen el resultado (filtros, tipos de tarifa, variantes de producto, condiciones legales).
-     - Si el usuario NO especificó preferencia sobre esa opción en su objetivo, y la opción es crítica (ej: Precios, Tallas, Tipos de usuario), sugiérele que la revise.
-     - Ejemplo: Si el objetivo es "Comprar camiseta" y ves "Talla S, M, L", pregunta la talla. No asumas.
+  PROCESO DE RAZONAMIENTO OBLIGATORIO:
+  1. **LOCALIZACIÓN:** ¿En qué paso del proceso estamos? ¿Estamos eligiendo vuelos?
+     - Si ves tarjetas con [OFERTA_VUELO], sí.
+  2. **FILTRO DE FUTURO:** Si ves textos como "Pago", "Datos Pasajero" en una barra superior [NAV_STATUS], **IGNÓRALOS**. No puedes saltar al futuro. Céntrate en el formulario central actual.
+  3. **REGLA DE IDA Y VUELTA (CRÍTICO):**
+     - Si el usuario pidió "Ida y Vuelta", debes seleccionar **DOS** vuelos antes de pulsar "Continuar".
+     - **Paso 1:** Busca una tarjeta [OFERTA_VUELO] que parezca la IDA (mira las horas, suele estar arriba).
+     - **Paso 2:** Si el historial muestra que ya clicaste un vuelo (y la página no cambió mucho), busca otro [OFERTA_VUELO] (suele estar más abajo, puede requerir scroll).
+     - **Solo pulsa "Continuar"** cuando hayas seleccionado ambos.
+  4. **EVITA TRAMPAS:**
+     - Ignora [INFO_PASO] (Pestañas de "Pago" o "Datos").
+     - Ignora [CALENDARIO_PRECIO] si ya estás en el día correcto. Céntrate en [OFERTA_VUELO].
+     - Una vez seleccionados los vuelos hay que elegir la tarifa.
+  5. **VALIDACIÓN:** ¿Hay campos [VACÍO] requeridos para avanzar? Si es así, tu "feedback" debe pedir al usuario que los rellene.
+  6. **SELECCIÓN:** Busca el siguiente elemento lógico [ACCION] que nos acerque al objetivo.
+     - Si es un vuelo: Busca el precio o el botón de seleccionar dentro de la tarjeta del vuelo. Recuerda que debe elegir un precio tanto de ida como de vuelta.
+     - Si es un formulario: Busca el botón "Continuar", "Buscar" o "Siguiente" **SOLO SI** los datos están rellenos, en casos de vuelos pasajeros o descuentos de residencias si aplica.
 
-  3. **COHERENCIA DE ACCIÓN:**
-     - Si la acción anterior del usuario fue exitosa (el historial muestra que rellenó el campo correctamente), PASA AL SIGUIENTE CAMPO. No le pidas repetir lo mismo.
-     - Si el usuario pulsó un elemento equivocado, explícale el error amablemente.
-
-  El ID del elemento está en la propiedad "i".
-  Responde estrictamente este JSON:
+  SALIDA JSON REQUERIDA:
   {
-    "feedback": "Mensaje corto y natural.",
-    "target_id": number|null,
+    "thought": "Breve análisis interno: Dónde estoy, qué veo, qué ignoro (ej: ignoro 'Pago' porque estoy en 'Vuelos') y por qué elijo este elemento.",
+    "feedback": "Mensaje corto y natural para el usuario indicando qué hacer.",
+    "target_id": number // ID del elemento a clicar
     "status": "in_progress" | "completed"
   }
   `;
 
   const messages = [
-    {
-      role: "system",
-      content:
-        "Eres un asistente de usabilidad web. Actúas como los ojos y el sentido común del usuario. Eres preciso, paciente y neutral.",
+    { 
+      role: "system", 
+      content: "Eres una IA precisa que analiza DOMs web. No alucinas acciones. Priorizas avanzar paso a paso sin saltarte formularios." 
     },
     { role: "user", content: prompt },
   ];

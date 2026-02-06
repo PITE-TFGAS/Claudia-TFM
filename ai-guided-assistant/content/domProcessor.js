@@ -4,180 +4,147 @@
 window.mapaIA = new Map();
 
 // ---------------------------------------------------------
-// OBTENER EL DOM LIMPIO 
+// OBTENER EL DOM LIMPIO
 // ---------------------------------------------------------
 function obtenerDOM() {
   window.mapaIA.clear();
+  document.querySelectorAll("[data-ia-id]").forEach((el) => el.removeAttribute("data-ia-id"));
+
   let idCounter = 1;
   const elementosParaIA = [];
+  const nodosIgnorados = new Set(); // evita duplicados
 
-  const idsAntiguos = document.querySelectorAll("[data-ia-id]");
-  idsAntiguos.forEach((el) => el.removeAttribute("data-ia-id"));
+  const limpiarTexto = (txt) => (txt || "").replace(/\s+/g, " ").trim();
 
-  // Selectores semánticos
-  const selectores = [
-    "input:not([type='hidden'])",
-    "select",
-    "textarea",
-    "button",
-    "a",
-    "[role='button']",
-    "[role='combobox']",
-    "[role='listbox']",
-    "[role='gridcell']",
-    "[role='link']",
-    "[tabindex='0']",
+  // Exclusión
+  const estaEnZonaProhibida = (el) => {
+    return el.closest("#asistente-overlay, .asistente-chat, #ia-highlighter-overlay, noscript, script, style");
+  };
+
+  // Barra de progreso
+  const esBarraDePasos = (el) => {
+      return el.closest('nav ul, .steps, .progress, .wizard, .tracker, .breadcrumb, [class*="progress-tracker"], [class*="steps"]');
+  };
+
+  // Selectores interactivos comunes
+  const selectoresInteractivos = [
+    "button", "a[href]", "input", "select", "textarea",
+    "[role='button']", "[role='link']", "[role='checkbox']", "[role='radio']",
+    ".btn", ".button"
   ].join(", ");
 
-  const semanticos = Array.from(document.querySelectorAll(selectores));
+  const interactivos = Array.from(document.querySelectorAll(selectoresInteractivos));
 
-  // Elementos genéricos clickables 
-  const sospechosos = Array.from(
-    document.querySelectorAll("div, span, td, li, img, svg"),
-  );
+  interactivos.forEach((el) => {
+    if (estaEnZonaProhibida(el)) return;
+    if (!esVisible(el)) return;
 
-  const interactivosOcultos = sospechosos.filter((el) => {
-    if (el.matches(selectores)) return false; // Ya capturado
-    const estilo = window.getComputedStyle(el);
-    return estilo.cursor === "pointer";
+    let texto = "";
+    
+    // Extracción de texto
+    if (el.tagName === "INPUT") {
+      const label = document.querySelector(`label[for="${el.id}"]`);
+      let labelTxt = label ? label.innerText : "";
+      
+      if (el.type === "radio" || el.type === "checkbox") {
+        // Texto del padre o contenedores cercanos
+        const container = el.closest('label') || el.parentElement;
+        
+        if (container) {
+            const textoContenedor = limpiarTexto(container.innerText);
+            if (textoContenedor.length > 0) {
+                labelTxt = textoContenedor;
+                nodosIgnorados.add(container);
+                container.querySelectorAll('*').forEach(h => nodosIgnorados.add(h));
+            }
+        }
+        texto = `${labelTxt} (${el.checked ? "Marcado" : "Desmarcado"})`;
+      } else {
+        texto = `${labelTxt} ${el.placeholder || ""} ${el.value ? '[Valor: ' + el.value + ']' : ''}`;
+      }
+    } else if (el.tagName === "SELECT") {
+      texto = `Selección: ${el.options[el.selectedIndex]?.text || ""}`;
+    } else {
+      texto = el.innerText || el.getAttribute("aria-label") || el.title || "";
+    }
+
+    texto = limpiarTexto(texto);
+
+    // Iconos sin texto
+    if (!texto) {
+      const icon = el.querySelector("svg, img, i");
+      if (icon) texto = icon.getAttribute("aria-label") || icon.getAttribute("alt") || "Icono";
+    }
+
+    // Etiquetado inteligente
+    if (texto.length > 0) {
+      let etiquetas = ["ACCION"];
+      const lowerTxt = texto.toLowerCase();
+
+      // Detectar barras de progreso
+      if (esBarraDePasos(el)) {
+         etiquetas = ["INFO_PASO"];
+         if (el.matches('.active, .current, [aria-current]')) etiquetas.push("ACTUAL");
+      } 
+      // Detección vuelos
+      else if (lowerTxt.includes("seleccionar") || el.type === 'radio' || (lowerTxt.includes("€") && !lowerTxt.includes("total"))) {
+         etiquetas.push("OFERTA_VUELO");
+      }
+      // Calendarios
+      else if (lowerTxt.includes("€") && !el.type) {
+          etiquetas.push("CALENDARIO_PRECIO");
+      }
+
+      if (el.matches('.active, .selected, :checked')) etiquetas.push("SELECCIONADO");
+
+      const id = idCounter++;
+      el.setAttribute("data-ia-id", id);
+      nodosIgnorados.add(el);
+      
+      const finalStr = `[${etiquetas.join("|")}] ${texto}`;
+      
+      window.mapaIA.set(id, { referencia: el, texto: finalStr, tag: el.tagName });
+      elementosParaIA.push({ i: id, t: el.tagName.toLowerCase(), x: finalStr });
+    }
   });
 
-  const todos = [...new Set([...semanticos, ...interactivosOcultos])];
-
+  // Textos informativos
+  const todos = document.querySelectorAll("div, span, p, h1, h2, h3, h4, li, label, td");
+  
   todos.forEach((el) => {
-    // Filtros de seguridad
-    if (el.closest("#asistente-overlay")) return;
-    if (el.id === "ia-highlighter-overlay") return;
+    if (estaEnZonaProhibida(el)) return;
+    if (nodosIgnorados.has(el)) return;
     if (!esVisible(el)) return;
+    if (esBarraDePasos(el)) return; 
+
+    // Si contiene algo dentro es un contenedor
+    if (el.querySelector(selectoresInteractivos)) return;
+
+    const hijosBloque = Array.from(el.children).filter(c => ["DIV", "P", "UL", "TABLE"].includes(c.tagName));
+    if (hijosBloque.length > 0) return;
+
+    const texto = limpiarTexto(el.innerText);
+    
+    // Filtros de calidad
+    if (texto.length < 2) return;
+    if (/^\d{1,2}$/.test(texto)) return;
+
+    const esPrecio = /[\d.,]+\s*[$€£¥]/.test(texto);
+    const etiquetas = esPrecio ? ["PRECIO"] : [];
+    const ultimo = elementosParaIA[elementosParaIA.length - 1];
+    if (ultimo && ultimo.x.includes(texto)) return;
 
     const id = idCounter++;
     el.setAttribute("data-ia-id", id);
-
-    // Análisis del elemento
-    let etiquetas = [];
-    let textoPrincipal = "";
-
-    // Extracción de contexto
-    if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
-      let val = el.value;
-      const place = el.getAttribute("placeholder") || "";
-
-      // Palabras comunes cuando el campo está vacío
-      const valoresPlaceholder = [
-        "Origen",
-        "Destino",
-        "Fecha",
-        "Ida",
-        "Vuelta",
-        "",
-        "Buscar",
-        "Salida",
-        "Llegada",
-        "Seleccionar",
-      ];
-      const valLimpio = (val || "").trim();
-
-      const esGenerico =
-        valoresPlaceholder.some(
-          (b) => b.toLowerCase() === valLimpio.toLowerCase(),
-        ) || val === place;
-
-      if (esGenerico) {
-        textoPrincipal = place || "Campo de texto";
-        etiquetas.push("VACÍO");
-      } else {
-        textoPrincipal = `${place} [TIENE VALOR: ${val}]`;
-      }
-
-      if ((el.type === "radio" || el.type === "checkbox") && el.checked)
-        etiquetas.push("MARCADO");
-    } else if (el.tagName === "SELECT") {
-      const opt = el.options[el.selectedIndex];
-      if (opt && !opt.text.toLowerCase().includes("selec")) {
-        textoPrincipal = `Selector [TIENE VALOR: ${opt.text}]`;
-      } else {
-        textoPrincipal = "Selector [VACÍO]";
-      }
-    } else {
-      textoPrincipal =
-        el.innerText || el.getAttribute("aria-label") || el.title || "";
-    }
-
-    // fechas
-    const identificadores = (
-      el.id +
-      " " +
-      (el.getAttribute("aria-label") || "")
-    ).toLowerCase();
-    const matchFecha = identificadores.match(/(\d{4}-\d{2}-\d{2})/);
-
-    if (matchFecha) {
-      etiquetas.push(`FECHA EXACTA: ${matchFecha[1]}`);
-    } else if (/^[0-9]{1,2}$/.test(textoPrincipal.trim())) {
-      // Verificar si es un calendario
-      const padreEstructural = el.closest("table, [role='grid'], [role='row']");
-      if (padreEstructural) {
-        etiquetas.push("DÍA CALENDARIO");
-      }
-    }
-
-    // Detección de precios
-    if (textoPrincipal.includes("€") || textoPrincipal.includes("$")) {
-      if (/\d/.test(textoPrincipal)) {
-        etiquetas.push("BOTÓN TARIFA");
-      }
-    }
-
-    // Detección del foco
-    if (el === document.activeElement) {
-      etiquetas.push("FOCO ACTUAL / ESCRIBIENDO");
-    }
-
-    // Detección del estado
-    if (
-      el.getAttribute("aria-selected") === "true" ||
-      el.getAttribute("aria-current") === "true" ||
-      el.getAttribute("aria-checked") === "true"
-    ) {
-      etiquetas.push("SELECCIONADO");
-    }
-
-    // Fallback a clases genéricas
-    else if (
-      el.classList.contains("active") ||
-      el.classList.contains("selected") ||
-      el.classList.contains("checked") ||
-      el.classList.contains("activo")
-    ) {
-      etiquetas.push("SELECCIONADO");
-    }
-
-    if (!textoPrincipal && etiquetas.length === 0) {
-      textoPrincipal = "Elemento interactivo";
-    }
-
-    const tagsStr = etiquetas.length > 0 ? `[${etiquetas.join(" | ")}]` : "";
-    let textoFinal = `${tagsStr} ${textoPrincipal}`.trim();
-    textoFinal = textoFinal.replace(/\s+/g, " ").substring(0, 100);
-
-    window.mapaIA.set(id, {
-      referencia: el,
-      tag: el.tagName.toLowerCase(),
-      texto: textoFinal,
-    });
-
-    elementosParaIA.push({
-      i: id,
-      t: el.tagName.toLowerCase(),
-      x: textoFinal,
-    });
+    el.querySelectorAll('*').forEach(h => nodosIgnorados.add(h));
+    
+    const finalStr = (etiquetas.length ? `[${etiquetas.join("|")}] ` : "") + texto;
+    
+    window.mapaIA.set(id, { referencia: el, texto: finalStr, tag: el.tagName });
+    elementosParaIA.push({ i: id, t: el.tagName.toLowerCase(), x: finalStr.substring(0, 150) });
   });
 
-  // ---------------------------------------------------------
-  // LOG PARA DEPURAR
-  // ---------------------------------------------------------
   console.log("🔍 SNAPSHOT PARA IA:", JSON.stringify(elementosParaIA, null, 2));
-  // ---------------------------------------------------------
 
   return JSON.stringify(elementosParaIA);
 }
@@ -208,12 +175,10 @@ function buscarElementoRobusto(idIA) {
     if (c.value) textoC += " " + c.value.toLowerCase();
     if (c.getAttribute("aria-label"))
       textoC += " " + c.getAttribute("aria-label").toLowerCase();
-
     const originalLimpio = datos.texto
       .toLowerCase()
       .replace(/\[.*?\]/g, "")
       .trim();
-
     return textoC.includes(originalLimpio) || originalLimpio.includes(textoC);
   });
 
@@ -230,16 +195,16 @@ function buscarElementoRobusto(idIA) {
 // ---------------------------------------------------------
 function esVisible(el) {
   const style = window.getComputedStyle(el);
+  if (!el) return false;
+  
+  if (el.getAttribute("aria-hidden") === "true") return false;
+  if (el.offsetParent === null && el.tagName !== "BODY") return false;
+  
+  if (style.display === "none" || style.visibility === "hidden") return false;
+  if (style.opacity === "0" && el.tagName !== "INPUT") return false;
+
   const rect = el.getBoundingClientRect();
-  return (
-    style.display !== "none" &&
-    style.visibility !== "hidden" &&
-    style.opacity !== "0" &&
-    rect.width > 0 &&
-    rect.height > 0 &&
-    rect.top < window.innerHeight &&
-    rect.bottom > 0
-  );
+  return rect.width > 0 && rect.height > 0;
 }
 
 window.obtenerDOM = obtenerDOM;

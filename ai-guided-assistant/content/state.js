@@ -8,7 +8,7 @@ window.AsistenteState = {
     lastSuggestedText: "",
     actionHistory: [],
     debounceTimer: null,
-    DEBOUNCE_DELAY: 2000,
+    DEBOUNCE_DELAY: 3000,
 
     // Inicializar estado desde el storage
     async loadFromStorage() {

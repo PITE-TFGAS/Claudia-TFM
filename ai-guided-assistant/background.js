@@ -65,7 +65,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // Llamar al backend (IA real)
   if (message.type === "CALL_AI") {
-    fetch("http://localhost:3000/ai/intentGemini", {
+    fetch("http://localhost:3000/ai/intentGroq", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
