@@ -4,11 +4,10 @@
 // RESALTA EL ELEMENTO PASADO POR PARÁMETRO
 // ---------------------------------------------------------
 function resaltarElemento(el) {
-  // limpiar resaltados anteriores
+  // Limpiar resaltados anteriores
   limpiarResaltado();
 
-  const r = el.getBoundingClientRect();
-
+  const r = el.getBoundingClientRect(); // Posición relativa al viewport
   const scrollTop = window.scrollY || document.documentElement.scrollTop;
   const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
 
@@ -39,6 +38,51 @@ function resaltarElemento(el) {
 
   // Scroll hacia el elemento
   el.scrollIntoView({ behavior: "smooth", block: "center" });
+
+  gestionarEsquivaChat(r);
+}
+
+// ---------------------------------------------------------
+// LÓGICA DE DODGING
+// ---------------------------------------------------------
+function gestionarEsquivaChat(rectElemento) {
+  const chat = document.getElementById("asistente-overlay");
+  if (!chat) return;
+
+  // coordenadas del chat
+  const rectChat = chat.getBoundingClientRect();
+
+  // Si los cuadros se tocan en algún punto
+  const hayColision = !(
+    rectElemento.right < rectChat.left ||
+    rectElemento.left > rectChat.right ||
+    rectElemento.bottom < rectChat.top ||
+    rectElemento.top > rectChat.bottom
+  );
+
+  // Mover el chat
+  if (hayColision) {
+    console.log("El chat está tapando el elemento. Moviendo...");
+
+    const windowWidth = window.innerWidth;
+    const centroElementoX = rectElemento.left + rectElemento.width / 2;
+
+    chat.style.transition = "left 0.3s ease-in-out, top 0.3s ease-in-out";
+
+    // Saltar horizontalmente al lado contrario
+    if (centroElementoX > windowWidth / 2) {
+      chat.style.left = "20px";
+      chat.style.right = "auto";
+    } else {
+      const nuevaLeft = windowWidth - rectChat.width - 20;
+      chat.style.left = `${nuevaLeft}px`;
+      chat.style.right = "auto";
+    }
+
+    setTimeout(() => {
+      chat.style.transition = "";
+    }, 300);
+  }
 }
 
 // ---------------------------------------------------------
