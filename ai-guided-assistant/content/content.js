@@ -75,6 +75,12 @@ chrome.runtime.onMessage.addListener(async (message) => {
   // --- REACTIVACIÓN TRAS CIERRE TOTAL ---
 if (message.type === "SHOW_INITIAL_GREETING") {
       console.log("Recibida orden de saludo inicial (Modo Primera Vez).");
+      const { asistenteEnabled } = await chrome.storage.local.get("asistenteEnabled");
+      
+      if (!asistenteEnabled) {
+          console.log("Saludo inicial bloqueado: El asistente está desactivado.");
+          return;
+      }
       
       if (window.montarOverlay) await window.montarOverlay();
       if (window.AsistenteState) window.AsistenteState.reset();
