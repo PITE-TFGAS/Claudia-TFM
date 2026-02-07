@@ -26,6 +26,7 @@
         "overlay/overlayState.js",
         "overlay/chatUI.js",
         "overlay/chatHandler.js",
+        "overlay/overlayDrag.js",
         "overlay/overlayUI.js",
         "overlay/overlay.js"
       ]

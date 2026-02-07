@@ -11,6 +11,7 @@ function montarOverlay() {
     // si existe no hago nada
     if (document.getElementById("asistente-overlay")) {
       if (window.iniciarChat) window.iniciarChat();
+      if (window.hacerDraggable) window.hacerDraggable();
       resolve();
       return;
     }
@@ -36,6 +37,9 @@ function montarOverlay() {
         setTimeout(() => {
           if (window.iniciarChat) {
             window.iniciarChat();
+          }
+          if (window.hacerDraggable) {
+            window.hacerDraggable();
           }
           // semáforo verde
           isMounting = false;
