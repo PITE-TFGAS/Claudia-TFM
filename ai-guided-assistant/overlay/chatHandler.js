@@ -52,6 +52,8 @@ function setupResetButton() {
         }
         
         if (window.limpiarResaltado) window.limpiarResaltado();
+
+        chrome.runtime.sendMessage({ type: "BROADCAST_RESET" });
     });
 }
 

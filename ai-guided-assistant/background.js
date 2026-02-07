@@ -99,6 +99,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     return true; // async
   }
+
+  // Reinicio Global (Sincronizar pestañas)
+  if (message.type === "BROADCAST_RESET") {
+    // Borrar memoria central
+    chrome.storage.local.remove([
+      "asistente_goal",
+      "asistente_status",
+      "asistente_history",
+      "asistente_chat_history",
+      "ia_original_host",
+    ]);
+
+    chrome.tabs.query({}, (tabs) => {
+      tabs.forEach((tab) => {
+        chrome.tabs.sendMessage(tab.id, { type: "RESET_SESSION" }).catch(() => {});
+      });
+    });
+  }
 });
 
 // VIGILANTE DE PESTAÑAS (Cierre por dominio)

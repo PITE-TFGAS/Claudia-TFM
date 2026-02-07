@@ -131,10 +131,16 @@ if (message.type === "SHOW_INITIAL_GREETING") {
   }
   // --- ESCUCHAR ORDEN DE REINICIO ---
   if (message.type === "RESET_SESSION") {
-    console.log("Orden de reinicio recibida. Limpiando estado...");
     const State = window.AsistenteState;
-    State.reset();
-    limpiarResaltado();
+    if (State) State.reset();
+    
+    if (window.limpiarResaltado) window.limpiarResaltado();
+    if (window.resetMeta) window.resetMeta();
+
+    if (window.ChatUI) {
+        window.ChatUI.clear();
+        window.ChatUI.addMessage("assistant", "¡Vale! Empezamos de cero. ✨ ¿Qué quieres hacer ahora?");
+    }
   }
 });
 
