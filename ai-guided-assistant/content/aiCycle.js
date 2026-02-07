@@ -15,6 +15,10 @@ async function ejecutarCicloIA(phase, clickedData) {
         return;
     }
 
+    if (clickedData && clickedData.type === "chat_response") {
+        State.addToHistory(`Usuario escribió: "${clickedData.text}"`);
+    }
+
     const dom = obtenerDOM(); 
 
     // Registrar cambios de navegación

@@ -113,16 +113,22 @@ function setupInputListener(originalInput) {
 // LÓGICA DE NEGOCIO
 // ---------------------------------------------------------
 function procesarInputUsuario(texto) {
-    // Usamos overlayState.js
+    // Si no hay meta fijada es el objetivo principal
     if (!window.isMetaFijada()) {
         window.fijarMeta();
         chrome.storage.local.set({ asistente_goal: texto, asistente_status: "active" });
         chrome.runtime.sendMessage({ type: "USER_GOAL", goal: texto });
-    } else {
-        // Chat normal (si implementas chat libre en el futuro)
-        chrome.runtime.sendMessage({ type: "USER_CHAT", message: texto }, (res) => {
-            if (res) guardarYMostrarMensaje("assistant", res.text || "…");
-        });
+    } 
+    // Si hay meta el usuario puede seguir dando instrucciones
+    else {
+        console.log("Enviando dato al cerebro:", texto);
+        if (window.ejecutarCicloIA) {
+            window.ejecutarCicloIA("follow_up", { 
+                type: "chat_response",
+                text: texto,
+                tag: "chat-input"
+            });
+        }
     }
 }
 
