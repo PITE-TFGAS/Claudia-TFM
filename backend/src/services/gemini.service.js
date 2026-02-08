@@ -1,5 +1,80 @@
 import fetch from "node-fetch";
 
+// ---------------------------------------------------------
+// GESTIÓN DE CLAVES (KEY ROTATION)
+// ---------------------------------------------------------
+
+// Cargar claves
+const rawKeys = process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || "";
+const API_KEYS = rawKeys.split(",").map((k) => k.trim()).filter((k) => k);
+
+if (API_KEYS.length === 0) {
+  console.error("ERROR CRÍTICO: No hay claves de Gemini configuradas en .env");
+} else {
+  console.log(`Sistema de rotación cargado con ${API_KEYS.length} claves API.`);
+}
+
+let currentKeyIndex = 0;
+
+// Obtener clave actual
+function getCurrentKey() {
+  return API_KEYS[currentKeyIndex];
+}
+
+// Rotar a la siguiente
+function rotateKey() {
+  currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
+  console.log(`Rotando a la clave #${currentKeyIndex + 1} del pool.`);
+}
+
+// Hace petición y reintenta si falla
+async function makeGeminiRequest(body) {
+  let attempts = 0;
+  const maxAttempts = API_KEYS.length;
+
+  while (attempts < maxAttempts) {
+    const apiKey = getCurrentKey();
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (res.ok) {
+        return res.json();
+      }
+
+      // Error de límite
+      if (res.status === 429) {
+        console.warn(`Clave agotada (429): ...${apiKey.slice(-4)}. Cambiando...`);
+        rotateKey();
+        attempts++;
+        continue;
+      }
+
+      // Otros errores
+      const errorData = await res.json();
+      throw new Error(`Gemini Error ${res.status}: ${errorData.error?.message || res.statusText}`);
+
+    } catch (err) {
+      // Error de red
+      if (err.message.includes("fetch") || err.message.includes("network")) {
+        console.warn("Error de red con Gemini. Rotando clave y reintentando...");
+        rotateKey();
+        attempts++;
+      } else {
+        // Error lógico
+        throw err;
+      }
+    }
+  }
+
+  throw new Error("Todas las claves API de Gemini se han agotado o fallado.");
+}
+
 export async function callGemini(intent, dom) {
   const body = {
     contents: [
@@ -25,16 +100,8 @@ Devuelve SOLO JSON:
     ],
   };
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    },
-  );
-
-  return res.json();
+  // Usamos el sistema de rotación
+  return makeGeminiRequest(body);
 }
 
 export async function callGeminiStep({
@@ -134,6 +201,7 @@ export async function callGeminiStep({
 
   4. **COHERENCIA DE ACCIÓN:**
      - Si la acción anterior del usuario fue exitosa (el historial muestra que rellenó el campo correctamente), PASA AL SIGUIENTE CAMPO. No le pidas repetir lo mismo.
+     - Si tu "Instruction Anterior" fue pulsar X, y en el nuevo DOM ves que X sigue ahí idéntico (sin marcarse como seleccionado), pero en "Lo que hizo realmente el usuario" aparece X, asume que el usuario ya está en ese apartado.
      - Si el usuario pulsó un elemento equivocado, explícale el error amablemente.
   
   El ID del elemento está en la propiedad "i".
@@ -147,16 +215,11 @@ export async function callGeminiStep({
 
   const body = {
     contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: {
+        response_mime_type: "application/json"
+    }
   };
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    },
-  );
-
-  return res.json();
+  // Usamos el sistema de rotación
+  return makeGeminiRequest(body);
 }

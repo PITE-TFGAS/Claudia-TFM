@@ -3,7 +3,7 @@ import cors from "cors";
 import aiRoutes from "./routes/ai.routes.js";
 import dotenv from "dotenv";
 
-dotenv.config(); // <--- esto carga las variables de .env
+dotenv.config();
 
 const app = express();
 
@@ -13,5 +13,4 @@ app.use("/ai", aiRoutes);
 
 app.listen(3000, () => {
   console.log("Backend AI escuchando en http://localhost:3000");
-  console.log("GEMINI_API_KEY:", process.env.GEMINI_API_KEY ? "OK" : "MISSING");
 });
