@@ -10,8 +10,8 @@ window.ChatUI = {
     return {
       container: document.querySelector(".asistente-messages"),
       input: document.querySelector(".asistente-input"),
+      inputContainer: document.querySelector(".asistente-input-container"),
       btnReset: document.querySelector("#btn-nueva-tarea"),
-      // --- NUEVO REFERENCE para la cabecera ---
       headerActions:
         document.querySelector(".asistente-header-actions") ||
         document.querySelector(".asistente-header"),
@@ -51,12 +51,17 @@ window.ChatUI = {
       "Observando navegación",
       "Analizando la nueva página",
       "Procesando escritura",
-      "Escribe lo que quieres hacer"
+      "Escribe lo que quieres hacer",
     ];
 
     const esRuido = frasesSilenciosas.some((frase) => texto.includes(frase));
 
-    if (tipo === "assistant" && window.SpeechModule && !esRuido && leerEnVozAlta) {
+    if (
+      tipo === "assistant" &&
+      window.SpeechModule &&
+      !esRuido &&
+      leerEnVozAlta
+    ) {
       window.SpeechModule.leer(texto);
     }
   },
@@ -99,6 +104,71 @@ window.ChatUI = {
     });
 
     headerActions.insertBefore(btnAudio, headerActions.firstChild);
+  },
+
+  // ---------------------------------------------------------
+  // BOTÓN MICRÓFONO ESTADO
+  // ---------------------------------------------------------
+  setMicState(isActive) {
+    const btnMic = document.getElementById("btn-mic-toggle");
+    if (!btnMic) return;
+
+    if (isActive) {
+      btnMic.innerText = "🛑";
+      btnMic.style.backgroundColor = "#ffcccc";
+      btnMic.classList.add("mic-active");
+      const { input } = this.refs;
+      if (input) input.placeholder = "Escuchando... habla ahora";
+    } else {
+      btnMic.innerText = "🎙️";
+      btnMic.style.backgroundColor = "transparent";
+      btnMic.classList.remove("mic-active");
+      const { input } = this.refs;
+      if (input) input.placeholder = "Escribe lo que quieres hacer…";
+    }
+  },
+
+  // ---------------------------------------------------------
+  // INYECTAR BOTÓN MICRÓFONO
+  // ---------------------------------------------------------
+  injectMicButton() {
+    const { input } = this.refs;
+    if (!input || document.getElementById("btn-mic-toggle")) return;
+
+    const btnMic = document.createElement("button");
+    btnMic.id = "btn-mic-toggle";
+    btnMic.innerText = "🎙️";
+    btnMic.style.cssText = `
+            background: none; 
+            border: none; 
+            cursor: pointer; 
+            font-size: 20px; 
+            margin-left: 5px;
+            padding: 5px;
+            border-radius: 50%;
+            transition: all 0.2s;
+        `;
+
+    btnMic.addEventListener("click", () => {
+      if (window.SpeechModule) {
+        window.SpeechModule.toggleEscucha((textoDetectado) => {
+          input.value = textoDetectado;
+
+          // simular enter
+          const enterEvent = new KeyboardEvent("keydown", {
+            bubbles: true,
+            cancelable: true,
+            key: "Enter",
+            code: "Enter",
+            keyCode: 13,
+          });
+
+          input.dispatchEvent(enterEvent);
+        });
+      }
+    });
+
+    input.parentNode.insertBefore(btnMic, input.nextSibling);
   },
 };
 
