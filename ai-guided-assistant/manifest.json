@@ -17,6 +17,7 @@
       "js": [
         "content/domProcessor.js",
         "content/highlighter.js",
+        "content/speech.js",
         "content/state.js",     
         "content/tabKeeper.js", 
         "content/aiCycle.js",     

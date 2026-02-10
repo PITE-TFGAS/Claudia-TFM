@@ -28,6 +28,7 @@ function iniciarChat() {
     setupResetButton();
     setupInputListener(input);
     restoreChatHistory();
+    if (window.ChatUI.injectAudioToggle) window.ChatUI.injectAudioToggle();
 }
 
 // ---------------------------------------------------------
@@ -41,6 +42,7 @@ function setupResetButton() {
     btnReset.parentNode.replaceChild(newBtn, btnReset);
 
     newBtn.addEventListener("click", () => {
+        if (window.SpeechModule) window.SpeechModule.cancelar();
         window.ChatUI.clear();
         guardarYMostrarMensaje("assistant", "¡Vale! Empezamos de cero. ✨ ¿Qué quieres hacer ahora?", false);
 
@@ -74,7 +76,7 @@ function restoreChatHistory() {
         if (history.length === 0 && !hayMision) {
             window.ChatUI.addMessage("assistant", "Hola ✨ ¿Qué quieres hacer en esta página?");
         } else {
-            history.forEach(msg => window.ChatUI.addMessage(msg.tipo, msg.text));
+            history.forEach(msg => window.ChatUI.addMessage(msg.tipo, msg.text, false));
         }
     });
 }

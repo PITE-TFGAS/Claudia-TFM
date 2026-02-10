@@ -3,51 +3,105 @@
 console.log("Chat UI loaded");
 
 window.ChatUI = {
-    // ---------------------------------------------------------
-    // REFERENCIAS A ELEMENTOS
-    // ---------------------------------------------------------    
-    get refs() {
-        return {
-            container: document.querySelector(".asistente-messages"),
-            input: document.querySelector(".asistente-input"),
-            btnReset: document.querySelector("#btn-nueva-tarea")
-        };
-    },
+  // ---------------------------------------------------------
+  // REFERENCIAS A ELEMENTOS
+  // ---------------------------------------------------------
+  get refs() {
+    return {
+      container: document.querySelector(".asistente-messages"),
+      input: document.querySelector(".asistente-input"),
+      btnReset: document.querySelector("#btn-nueva-tarea"),
+      // --- NUEVO REFERENCE para la cabecera ---
+      headerActions:
+        document.querySelector(".asistente-header-actions") ||
+        document.querySelector(".asistente-header"),
+    };
+  },
 
-    // ---------------------------------------------------------
-    // LIMPIAR CHAT VISUALMENTE
-    // ---------------------------------------------------------
-    clear() {
-        const { container } = this.refs;
-        if (container) container.innerHTML = "";
-    },
+  // ---------------------------------------------------------
+  // LIMPIAR CHAT VISUALMENTE
+  // ---------------------------------------------------------
+  clear() {
+    const { container } = this.refs;
+    if (container) container.innerHTML = "";
+  },
 
-    // ---------------------------------------------------------
-    // AÑADIR MENSAJE
-    // ---------------------------------------------------------
-    addMessage(tipo, texto) {
-        const { container } = this.refs;
-        
-        // Mecanismo de reintento si el DOM no está listo
-        if (!container) {
-            setTimeout(() => this.addMessage(tipo, texto), 100);
-            return;
-        }
+  // ---------------------------------------------------------
+  // AÑADIR MENSAJE
+  // ---------------------------------------------------------
+  addMessage(tipo, texto, leerEnVozAlta = true) {
+    const { container } = this.refs;
 
-        const msg = document.createElement("div");
-        msg.textContent = texto;
-        // Usamos clases CSS en lugar de estilos inline
-        msg.classList.add("asistente-message", `asistente-message-${tipo}`);
-
-        container.appendChild(msg);
-        container.scrollTop = container.scrollHeight;
-    },
-
-    // ---------------------------------------------------------
-    // RESETEAR INPUT
-    // ---------------------------------------------------------
-    clearInput() {
-        const { input } = this.refs;
-        if (input) input.value = "";
+    // Mecanismo de reintento si el DOM no está listo
+    if (!container) {
+      setTimeout(() => this.addMessage(tipo, texto), 100);
+      return;
     }
+
+    const msg = document.createElement("div");
+    msg.textContent = texto;
+    // Usamos clases CSS en lugar de estilos inline
+    msg.classList.add("asistente-message", `asistente-message-${tipo}`);
+
+    container.appendChild(msg);
+    container.scrollTop = container.scrollHeight;
+
+    // Frases que no va a leer
+    const frasesSilenciosas = [
+      "Observando navegación",
+      "Analizando la nueva página",
+      "Procesando escritura",
+      "Escribe lo que quieres hacer"
+    ];
+
+    const esRuido = frasesSilenciosas.some((frase) => texto.includes(frase));
+
+    if (tipo === "assistant" && window.SpeechModule && !esRuido && leerEnVozAlta) {
+      window.SpeechModule.leer(texto);
+    }
+  },
+
+  // ---------------------------------------------------------
+  // RESETEAR INPUT
+  // ---------------------------------------------------------
+  clearInput() {
+    const { input } = this.refs;
+    if (input) input.value = "";
+  },
+
+  // ---------------------------------------------------------
+  // BOTÓN DE AUDIO
+  // ---------------------------------------------------------
+  injectAudioToggle() {
+    const { headerActions } = this.refs;
+    if (!headerActions || document.getElementById("btn-audio-toggle")) return;
+
+    const btnAudio = document.createElement("button");
+    btnAudio.id = "btn-audio-toggle";
+    btnAudio.style.cssText =
+      "background:none; border:none; cursor:pointer; font-size:16px; margin-right:8px;";
+
+    const updateIcon = () => {
+      const isEnabled = window.AsistenteState
+        ? window.AsistenteState.ttsEnabled
+        : false;
+      btnAudio.innerText = isEnabled ? "🔊" : "🔇";
+      btnAudio.title = isEnabled ? "Desactivar voz" : "Activar voz";
+    };
+
+    setTimeout(updateIcon, 500);
+
+    btnAudio.addEventListener("click", () => {
+      if (window.AsistenteState) {
+        window.AsistenteState.toggleTTS();
+        updateIcon();
+      }
+    });
+
+    headerActions.insertBefore(btnAudio, headerActions.firstChild);
+  },
 };
+
+setTimeout(() => {
+  if (window.ChatUI.injectAudioToggle) window.ChatUI.injectAudioToggle();
+}, 1000);
