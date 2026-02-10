@@ -45,6 +45,12 @@ function setupResetButton() {
 
   newBtn.addEventListener("click", () => {
     if (window.SpeechModule) window.SpeechModule.cancelar();
+
+    const confirmacion = window.confirm(
+      "⚠️ ¿Estás seguro de que quieres reiniciar?\n\nSe borrará todo el historial y la tarea actual.",
+    );
+    if (!confirmacion) return;
+
     window.ChatUI.clear();
     guardarYMostrarMensaje(
       "assistant",
@@ -159,7 +165,7 @@ function procesarInputUsuario(texto) {
 // ---------------------------------------------------------
 function ejecutarReinicioTotal() {
   window.ChatUI.clearInput();
-  window.ChatUI.addMessage("assistant", "Reiniciando sistema... 🔄");
+  window.ChatUI.addMessage("assistant", "Reiniciando sistema...");
   chrome.storage.local.clear(() => {
     setTimeout(() => window.location.reload(), 1000);
   });
