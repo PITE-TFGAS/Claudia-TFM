@@ -176,7 +176,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
             chrome.tabs.sendMessage(tabViva.id, {
               type: "TAB_KILLED_RESUME",
               descripcion:
-                "🛡️ He cerrado una ventana de publicidad. Sigo trabajando.",
+                "🛡️ He cerrado una ventana para ayudarte a cumplir tu objetivo.",
             });
           }
         });

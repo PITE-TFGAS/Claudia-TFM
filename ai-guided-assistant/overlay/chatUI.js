@@ -61,6 +61,7 @@ window.ChatUI = {
   // ---------------------------------------------------------
   addMessage(tipo, texto, leerEnVozAlta = true) {
     const { container } = this.refs;
+    console.log(texto)
 
     // Mecanismo de reintento si el DOM no está listo
     if (!container) {

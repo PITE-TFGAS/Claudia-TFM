@@ -52,18 +52,6 @@ function setupResetButton() {
     if (!confirmacion) return;
 
     window.ChatUI.clear();
-    guardarYMostrarMensaje(
-      "assistant",
-      "¡Vale! Empezamos de cero. ✨ ¿Qué quieres hacer ahora?",
-      false,
-    );
-
-    if (window.resetMeta) window.resetMeta();
-
-    if (window.AsistenteState) {
-      console.log("Forzando reset directo del State...");
-      window.AsistenteState.reset();
-    }
 
     if (window.limpiarResaltado) window.limpiarResaltado();
 
