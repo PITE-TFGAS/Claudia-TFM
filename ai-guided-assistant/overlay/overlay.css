@@ -1,61 +1,129 @@
+:root {
+  /* --- CONSTANTES DE ACCESIBILIDAD --- */
+  --bg-overlay: #ffffff;
+  --border-color: #000000;
+  --header-bg: #000000;
+  --header-text: #ffffff;
+  --font-family: "Verdana", sans-serif;
+  --base-font-size: 18px;
+
+  --user-msg-bg: #004d40;
+  --user-msg-text: #ffffff;
+  --bot-msg-bg: #f2f2f2;
+  --bot-msg-text: #000000;
+  --bot-msg-border: 2px solid #000000;
+
+  --flex-header: flex;
+  --radius: 6px;
+}
+
+/* =========================================
+   INTERACCIONES ACCESIBLES (HOVER & ACTIVE)
+   ========================================= */
+
+/* Botones de Cabecera (Reiniciar / Voz) */
+.btn-reset:hover, 
+#btn-audio-toggle:hover {
+  background: #ffff00 !important;
+  border-color: #000000 !important;
+  box-shadow: 4px 4px 0px #000000;
+  transform: translate(-2px, -2px); 
+}
+
+.btn-reset:active, 
+#btn-audio-toggle:active {
+  transform: translate(0px, 0px);
+  box-shadow: none;
+  background: #e6e600 !important;
+}
+
+
+#btn-mic-toggle:hover {
+  background: #333333 !important;
+  box-shadow: 0 0 0 3px #ffff00;
+  cursor: pointer;
+}
+
+#btn-mic-toggle:active {
+  background: #555555 !important;
+  transform: scale(0.95);
+}
+
+.mic-active:hover {
+  background: #b71c1c !important;
+  border-color: #ffffff !important;
+}
+
+.asistente-input:hover {
+  border-color: #0056b3;
+  background-color: #fafafa;
+}
+
+/* =========================================
+   MODO ACCESIBLE (POR DEFECTO)
+   ========================================= */
+
 #asistente-overlay {
   position: fixed;
   bottom: 24px;
   right: 24px;
   z-index: 999999;
+  font-family: var(--font-family);
 }
 
 .asistente-chat {
-  width: 320px;
-  height: 420px;
-  background: white;
-  border-radius: 18px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  width: 360px;
+  height: 520px;
+  background: var(--bg-overlay);
+  border: 4px solid #000;
+  border-radius: var(--radius);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  font-family: system-ui, -apple-system, sans-serif;
+  box-shadow: 0 0 0 2px #fff;
+  box-sizing: border-box;
 }
 
-/* CABECERA */
 .asistente-header {
-  padding: 14px 18px;
-  background: #111;
-  color: white;
-  font-weight: 600;
+  background: var(--header-bg);
+  color: var(--header-text);
+  padding: 15px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: flex-start;
+  border-bottom: 4px solid #333;
+}
+
+.header-title {
+  font-size: 20px;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 .asistente-header-actions {
+  margin-top: 10px;
   display: flex;
-  align-items: center;
+  gap: 10px;
+  width: 100%;
 }
 
-.btn-reset {
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  cursor: pointer;
-  color: white;
-  font-size: 16px;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  transition: background 0.2s, transform 0.2s;
+/* Botones accesibles: Grandes y de alto contraste */
+.btn-reset,
+#btn-audio-toggle {
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 3px solid #000 !important;
+  border-radius: 6px !important;
+  height: 48px !important;
+  padding: 0 12px !important;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-left: 8px;
-}
-
-.btn-reset:hover {
-  background: rgba(255, 255, 255, 0.4);
-  transform: rotate(180deg);
-}
-
-.btn-reset:active {
-  transform: scale(0.95);
+  gap: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px !important;
+  text-transform: uppercase;
 }
 
 .asistente-messages {
@@ -64,79 +132,179 @@
   padding: 15px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  background-color: #f8f9fa;
+  gap: 20px;
+  background-color: #fff;
 }
 
 .asistente-message {
-  padding: 10px 14px;
-  border-radius: 12px;
+  padding: 16px;
+  border-radius: 8px;
   max-width: 85%;
-  word-wrap: break-word;
-  font-size: 14px;
-  line-height: 1.4;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  font-size: var(--base-font-size);
+  line-height: 1.5;
+  font-weight: 500;
 }
 
 .asistente-message-assistant {
-  background-color: #ffffff;
-  align-self: flex-start;
-  color: #333;
-  border: 1px solid #e0e0e0;
-  border-bottom-left-radius: 2px;
+  background: var(--bot-msg-bg);
+  color: var(--bot-msg-text);
+  border: var(--bot-msg-border);
 }
 
 .asistente-message-user {
-  background-color: #007aff;
+  background: var(--user-msg-bg);
+  color: var(--user-msg-text);
   align-self: flex-end;
-  color: white;
-  border-bottom-right-radius: 2px;
+  border-bottom-right-radius: 0;
 }
 
 .asistente-input-container {
+  padding: 12px;
+  background: #fff;
+  border-top: 4px solid #000;
   display: flex;
-  align-items: center;
-  border-top: 1px solid #eee;
-  padding: 8px 12px;
-  background: white;
+  gap: 10px;
 }
 
 .asistente-input {
   flex: 1;
-  border: none;
-  padding: 10px;
-  outline: none;
-  background: transparent;
-  font-size: 14px;
-  color: #333;
+  border: 3px solid #000;
+  border-radius: 6px;
+  padding: 12px;
+  font-size: 18px;
+  font-weight: 600;
 }
 
 #btn-mic-toggle {
-    margin-left: 8px;
-    padding: 8px;
-    border-radius: 50%;
-    cursor: pointer;
-    background: transparent;
-    border: none;
-    font-size: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.2s;
-}
-
-#btn-mic-toggle:hover {
-    background-color: #f0f0f0;
+  width: 54px;
+  background: #000 !important;
+  color: #fff !important;
+  border-radius: 6px !important;
+  font-size: 24px !important;
 }
 
 .mic-active {
-    animation: pulse 1.5s infinite;
-    color: #ff3b30 !important;
-    background-color: rgba(255, 59, 48, 0.1) !important;
+  background: #d32f2f !important;
+  border: 4px solid #ff8a80 !important;
+}
+
+/* =========================================
+   MODO ESTÉTICO (DESIGN OVERRIDE)
+   ========================================= */
+
+.aesthetic-mode .asistente-chat {
+  width: 320px;
+  height: 420px;
+  border: none;
+  border-radius: 18px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
+  overflow: hidden;
+}
+
+.aesthetic-mode .asistente-header {
+  padding: 14px 18px;
+  background: #111;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: none;
+}
+
+.aesthetic-mode .header-title {
+  font-size: 16px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.aesthetic-mode .asistente-header-actions {
+  margin-top: 0;
+  width: auto;
+}
+
+.aesthetic-mode .btn-reset,
+.aesthetic-mode #btn-audio-toggle {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: none !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  border-radius: 50% !important;
+  padding: 0 !important;
+  color: white !important;
+}
+
+/* Ocultar etiquetas de texto en modo bonito */
+.aesthetic-mode .btn-label {
+  display: none !important;
+}
+
+.aesthetic-mode .asistente-messages {
+  background-color: #f8f9fa;
+  gap: 10px;
+  padding: 15px;
+}
+
+.aesthetic-mode .asistente-message {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  border: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.aesthetic-mode .asistente-message-assistant {
+  background-color: #ffffff;
+  color: #333;
+  border: 1px solid #e0e0e0;
+}
+
+.aesthetic-mode .asistente-message-user {
+  background-color: #007aff;
+  color: white;
+}
+
+.aesthetic-mode .asistente-input-container {
+  border-top: 1px solid #eee;
+  padding: 8px 12px;
+}
+
+.aesthetic-mode .asistente-input {
+  border: none;
+  font-size: 14px;
+  font-weight: 400;
+  padding: 10px;
+}
+
+.aesthetic-mode #btn-mic-toggle {
+  background: transparent !important;
+  color: #333 !important;
+  width: auto !important;
+  font-size: 18px !important;
+}
+
+.aesthetic-mode .mic-active {
+  animation: pulse 1.5s infinite;
+  color: #ff3b30 !important;
+  background-color: rgba(255, 59, 48, 0.1) !important;
+  border: none !important;
 }
 
 @keyframes pulse {
-    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.4); }
-    70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(255, 59, 48, 0); }
-    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.4);
+  }
+  70% {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 6px rgba(255, 59, 48, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 59, 48, 0);
+  }
 }

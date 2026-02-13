@@ -1,49 +1,89 @@
 body {
-  width: 180px;
-  padding: 16px;
-  font-family: system-ui;
-  text-align: center;
+  width: 280px; /* Más ancho para permitir fuentes grandes */
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #000;
+  background-color: #fff;
 }
 
 h3 {
-  margin-bottom: 12px;
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 20px;
+  text-align: center;
+  border-bottom: 2px solid #000;
+  padding-bottom: 10px;
+}
+
+.control-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.switch-label {
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .switch {
   position: relative;
   display: inline-block;
-  width: 48px;
-  height: 26px;
+  width: 60px; /* Más grande */
+  height: 34px;
 }
 
-.switch input {
-  display: none;
-}
+.switch input { display: none; }
 
 .slider {
   position: absolute;
   inset: 0;
   background: #ccc;
-  border-radius: 20px;
+  border-radius: 34px;
   cursor: pointer;
+  border: 2px solid #555; /* Borde para alto contraste */
 }
 
 .slider::before {
   content: "";
   position: absolute;
-  width: 20px;
-  height: 20px;
+  height: 24px;
+  width: 24px;
   left: 3px;
-  top: 3px;
+  bottom: 3px;
   background: white;
   border-radius: 50%;
-  transition: .2s;
+  transition: .3s;
+  border: 1px solid #999;
 }
 
 input:checked + .slider {
-  background: #111;
+  background: #000; /* Negro puro para activo */
 }
 
 input:checked + .slider::before {
-  transform: translateX(22px);
+  transform: translateX(26px);
+  background: #fff;
+}
+
+.status-text {
+  text-align: center;
+  font-weight: bold;
+  font-size: 16px;
+  margin-top: -10px;
+  margin-bottom: 20px;
+}
+
+.small-hint {
+  font-size: 14px;
+  color: #444;
+  text-align: center;
+  font-style: italic;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid #000;
+  margin: 15px 0;
 }

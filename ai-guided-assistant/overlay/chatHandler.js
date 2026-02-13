@@ -22,7 +22,7 @@ function iniciarChat() {
   }
 
   const { input } = window.ChatUI.refs;
-  input.placeholder = "Escribe lo que quieres hacer…";
+  input.placeholder = "Escribe qué quieres hacer…";
 
   // Configurar las 3 partes clave por separado
   setupResetButton();

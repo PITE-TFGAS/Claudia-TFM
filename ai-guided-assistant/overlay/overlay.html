@@ -1,18 +1,23 @@
-<div id="asistente-overlay">
+<div id="asistente-overlay" class="accesible-theme">
   <div class="asistente-chat">
-    
     <div class="asistente-header">
-      <span>Asistente</span>
+      <span class="header-title">ASISTENTE</span>
       <div class="asistente-header-actions">
-          <button id="btn-nueva-tarea" class="btn-reset" title="Nueva tarea">🔄</button>
+        <button id="btn-nueva-tarea" class="btn-reset" title="Nueva tarea">
+          <span class="btn-icon">🔄</span>
+          <span class="btn-label">Reiniciar</span>
+        </button>
       </div>
     </div>
 
     <div class="asistente-messages"></div>
 
     <div class="asistente-input-container">
-      <input class="asistente-input" placeholder="Escribe o habla..." />
-      </div>
-
+      <input
+        class="asistente-input"
+        placeholder="Escribe aquí..."
+        aria-label="Mensaje para el asistente"
+      />
+    </div>
   </div>
 </div>

@@ -1,6 +1,30 @@
 // SCRIPT ENCARGADO DE PINTAR MENSAJES EN EL CHAT
 
-console.log("Chat UI loaded");
+console.log("Chat UI loaded - Senior Accessible Mode Ready");
+
+// ---------------------------------------------------------
+// APLICAR TEMA DESDE STORAGE
+// ---------------------------------------------------------
+function applyTheme(isAesthetic) {
+  const overlay = document.getElementById("asistente-overlay");
+  if (!overlay) return;
+
+  if (isAesthetic) {
+    overlay.classList.add("aesthetic-mode");
+  } else {
+    overlay.classList.remove("aesthetic-mode");
+  }
+}
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "updateTheme") {
+    applyTheme(request.aestheticMode);
+  }
+});
+
+chrome.storage.local.get("aestheticMode", (res) => {
+  applyTheme(!!res.aestheticMode);
+});
 
 window.ChatUI = {
   // ---------------------------------------------------------
@@ -12,9 +36,7 @@ window.ChatUI = {
       input: document.querySelector(".asistente-input"),
       inputContainer: document.querySelector(".asistente-input-container"),
       btnReset: document.querySelector("#btn-nueva-tarea"),
-      headerActions:
-        document.querySelector(".asistente-header-actions") ||
-        document.querySelector(".asistente-header"),
+      headerActions: document.querySelector(".asistente-header-actions"),
     };
   },
 
@@ -27,7 +49,15 @@ window.ChatUI = {
   },
 
   // ---------------------------------------------------------
-  // AÑADIR MENSAJE
+  // RESETEAR EL INPUT
+  // ---------------------------------------------------------
+  clearInput() {
+    const { input } = this.refs;
+    if (input) input.value = "";
+  },
+
+  // ---------------------------------------------------------
+  // MENSJAES NUEVOS EN EL CHAT
   // ---------------------------------------------------------
   addMessage(tipo, texto, leerEnVozAlta = true) {
     const { container } = this.refs;
@@ -42,6 +72,9 @@ window.ChatUI = {
     msg.textContent = texto;
     // Usamos clases CSS en lugar de estilos inline
     msg.classList.add("asistente-message", `asistente-message-${tipo}`);
+
+    // Accesibilidad
+    msg.setAttribute("role", "article");
 
     container.appendChild(msg);
     container.scrollTop = container.scrollHeight;
@@ -67,14 +100,6 @@ window.ChatUI = {
   },
 
   // ---------------------------------------------------------
-  // RESETEAR INPUT
-  // ---------------------------------------------------------
-  clearInput() {
-    const { input } = this.refs;
-    if (input) input.value = "";
-  },
-
-  // ---------------------------------------------------------
   // BOTÓN DE AUDIO
   // ---------------------------------------------------------
   injectAudioToggle() {
@@ -83,23 +108,33 @@ window.ChatUI = {
 
     const btnAudio = document.createElement("button");
     btnAudio.id = "btn-audio-toggle";
-    btnAudio.style.cssText =
-      "background:none; border:none; cursor:pointer; font-size:16px; margin-right:8px;";
+    btnAudio.title = "Activar o desactivar voz";
 
-    const updateIcon = () => {
+    // Función visual: Icono + Texto
+    const updateVisuals = () => {
+      // Estado global
       const isEnabled = window.AsistenteState
         ? window.AsistenteState.ttsEnabled
         : false;
-      btnAudio.innerText = isEnabled ? "🔊" : "🔇";
-      btnAudio.title = isEnabled ? "Desactivar voz" : "Activar voz";
+
+      const icon = isEnabled ? "🔊" : "🔇";
+      const text = isEnabled ? "VOZ ON" : "SILENCIO";
+
+      btnAudio.innerHTML = `<span class="btn-icon">${icon}</span><span class="btn-label">${text}</span>`;
+
+      btnAudio.setAttribute(
+        "aria-label",
+        isEnabled ? "Desactivar lectura de voz" : "Activar lectura de voz",
+      );
     };
 
-    setTimeout(updateIcon, 500);
+    // Render inicial
+    updateVisuals();
 
     btnAudio.addEventListener("click", () => {
       if (window.AsistenteState) {
         window.AsistenteState.toggleTTS();
-        updateIcon();
+        updateVisuals();
       }
     });
 
@@ -112,19 +147,24 @@ window.ChatUI = {
   setMicState(isActive) {
     const btnMic = document.getElementById("btn-mic-toggle");
     if (!btnMic) return;
+    const { input } = this.refs;
 
     if (isActive) {
-      btnMic.innerText = "🛑";
-      btnMic.style.backgroundColor = "#ffcccc";
+      btnMic.innerHTML = `<span class="icon">🛑</span>`;
       btnMic.classList.add("mic-active");
-      const { input } = this.refs;
-      if (input) input.placeholder = "Escuchando... habla ahora";
+      btnMic.setAttribute("aria-label", "Detener escucha");
+      if (input) {
+        input.placeholder = "Escuchando...";
+        input.style.backgroundColor = "#fff3e0";
+      }
     } else {
-      btnMic.innerText = "🎙️";
-      btnMic.style.backgroundColor = "transparent";
+      btnMic.innerHTML = `<span class="icon">🎙️</span>`;
       btnMic.classList.remove("mic-active");
-      const { input } = this.refs;
-      if (input) input.placeholder = "Escribe lo que quieres hacer…";
+      btnMic.setAttribute("aria-label", "Activar micrófono");
+      if (input) {
+        input.placeholder = "Escribe o habla aquí...";
+        input.style.backgroundColor = "transparent";
+      }
     }
   },
 
@@ -137,17 +177,8 @@ window.ChatUI = {
 
     const btnMic = document.createElement("button");
     btnMic.id = "btn-mic-toggle";
-    btnMic.innerText = "🎙️";
-    btnMic.style.cssText = `
-            background: none; 
-            border: none; 
-            cursor: pointer; 
-            font-size: 20px; 
-            margin-left: 5px;
-            padding: 5px;
-            border-radius: 50%;
-            transition: all 0.2s;
-        `;
+    btnMic.innerHTML = `<span class="icon">🎙️</span>`;
+    btnMic.title = "Hablar al asistente";
 
     btnMic.addEventListener("click", () => {
       if (window.SpeechModule) {
@@ -174,4 +205,5 @@ window.ChatUI = {
 
 setTimeout(() => {
   if (window.ChatUI.injectAudioToggle) window.ChatUI.injectAudioToggle();
+  if (window.ChatUI.injectMicButton) window.ChatUI.injectMicButton();
 }, 1000);

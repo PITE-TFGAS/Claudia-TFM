@@ -1,17 +1,31 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
+  <meta charset="UTF-8">
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <h3>Asistente</h3>
+  <h3>Asistente Navegación Web</h3>
 
-  <label class="switch">
-    <input type="checkbox" id="toggle">
-    <span class="slider"></span>
-  </label>
+  <div class="control-group">
+    <label class="switch-label" for="toggle-enable">Activar Asistente</label>
+    <label class="switch">
+      <input type="checkbox" id="toggle-enable">
+      <span class="slider"></span>
+    </label>
+  </div>
+  <p id="status" class="status-text"></p>
 
-  <p id="status"></p>
+  <hr>
+
+  <div class="control-group">
+    <label class="switch-label" for="toggle-design">Modo "Bonito"</label>
+    <label class="switch">
+      <input type="checkbox" id="toggle-design">
+      <span class="slider"></span>
+    </label>
+  </div>
+  <p class="small-hint">Desactiva para alto contraste y letras grandes.</p>
 
   <script src="popup.js"></script>
 </body>
