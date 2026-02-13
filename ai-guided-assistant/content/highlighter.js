@@ -89,6 +89,10 @@ function gestionarEsquivaChat() {
       chat.style.left = "auto";
       chat.style.right = "24px";
     }
+    
+    setTimeout(() => {
+        if(chat) chat.style.transition = "";
+    }, 350);
   }
 }
 

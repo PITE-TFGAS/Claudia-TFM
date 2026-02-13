@@ -24,6 +24,7 @@ function hacerDraggable() {
         if (e.target.closest("button") || e.target.closest("input")) return;
 
         isDragging = true;
+        overlay.style.transition = "none";
         startX = e.clientX;
         startY = e.clientY;
         const rect = overlay.getBoundingClientRect();
