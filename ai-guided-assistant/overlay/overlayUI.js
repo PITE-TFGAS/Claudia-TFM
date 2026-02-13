@@ -32,6 +32,7 @@ function montarOverlay() {
         if (!document.getElementById("asistente-overlay")) {
              document.body.insertAdjacentHTML("beforeend", html);
              inyectarCSS();
+             aplicarTemaInicial();
         }
 
         setTimeout(() => {
@@ -55,6 +56,21 @@ function montarOverlay() {
 }
 
 // ---------------------------------------------------------
+// NUEVA FUNCIÓN PARA APLICAR TEMA AL INICIO
+// ---------------------------------------------------------
+function aplicarTemaInicial() {
+    chrome.storage.local.get("aestheticMode", (res) => {
+        const overlay = document.getElementById("asistente-overlay");
+        if (!overlay) return;
+        if (res.aestheticMode) {
+            overlay.classList.add("aesthetic-mode");
+        } else {
+            overlay.classList.remove("aesthetic-mode");
+        }
+    });
+}
+
+// ---------------------------------------------------------
 // FUNCIÓN QUE DESMONTA EL CHAT
 // ---------------------------------------------------------
 function desmontarOverlay() {
@@ -74,6 +90,20 @@ function inyectarCSS() {
   link.href = chrome.runtime.getURL("overlay/overlay.css");
   document.head.appendChild(link);
 }
+
+// Escuchar cambios de tema en tiempo real
+chrome.runtime.onMessage.addListener((request) => {
+    if (request.action === "updateTheme") {
+        const overlay = document.getElementById("asistente-overlay");
+        if (overlay) {
+            if (request.aestheticMode) {
+                overlay.classList.add("aesthetic-mode");
+            } else {
+                overlay.classList.remove("aesthetic-mode");
+            }
+        }
+    }
+});
 
 window.montarOverlay = montarOverlay;
 window.desmontarOverlay = desmontarOverlay;
