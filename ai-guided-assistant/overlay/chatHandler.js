@@ -45,18 +45,79 @@ function setupResetButton() {
 
   newBtn.addEventListener("click", () => {
     if (window.SpeechModule) window.SpeechModule.cancelar();
-
-    const confirmacion = window.confirm(
-      "⚠️ ¿Estás seguro de que quieres reiniciar?\n\nSe borrará todo el historial y la tarea actual.",
-    );
-    if (!confirmacion) return;
-
-    window.ChatUI.clear();
-
-    if (window.limpiarResaltado) window.limpiarResaltado();
-
-    chrome.runtime.sendMessage({ type: "BROADCAST_RESET" });
+    mostrarModalGigante();
   });
+}
+
+// ---------------------------------------------------------
+// CREA UN POPUP PARA ASEGURAR QUE QUIERE REINICIAR
+// ---------------------------------------------------------
+function mostrarModalGigante() {
+  // Evitar abrirlo dos veces
+  if (document.getElementById("ia-modal-confirmacion")) return;
+
+  if (window.SpeechModule) {
+    window.SpeechModule.leer("¿Quieres reiniciar y empezar otra tarea? Se borrará la memoria del chat");
+  }
+
+  // Comprobar si estamos en modo estético
+  // Buscamos el contenedor principal del chat para ver si tiene la clase
+  const chatOverlay = document.getElementById("asistente-overlay");
+  const esModoEstetico = chatOverlay && chatOverlay.classList.contains("aesthetic-mode");
+
+  const backdrop = document.createElement("div");
+  backdrop.id = "ia-modal-confirmacion";
+  backdrop.className = "ia-modal-backdrop";
+  
+  // --- CAMBIO CLAVE: APLICAR LA CLASE SI CORRESPONDE ---
+  if (esModoEstetico) {
+      backdrop.classList.add("aesthetic-mode");
+  }
+
+  backdrop.innerHTML = `
+    <div class="ia-modal-box">
+      <div class="ia-modal-title">${esModoEstetico ? 'Reiniciar' : '⚠️ ¿REINICIAR TODO? ⚠️'}</div>
+      
+      <p class="ia-modal-text">
+        Se borrará todo el historial y olvidarás la tarea actual.
+      </p>
+      
+      <div class="ia-modal-actions">
+        <button id="btn-cancelar-reset" class="ia-btn-modal ia-btn-cancel">
+          ${esModoEstetico ? 'Cancelar' : 'NO, VOLVER'}
+        </button>
+        <button id="btn-confirmar-reset" class="ia-btn-modal ia-btn-confirm">
+          ${esModoEstetico ? 'Sí, Reiniciar' : 'SÍ, BORRAR'}
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(backdrop);
+
+  // --- LÓGICA DE LOS BOTONES DEL MODAL ---
+  
+  document
+    .getElementById("btn-cancelar-reset")
+    .addEventListener("click", () => {
+      // Pequeña animación de salida si es estético
+      if(esModoEstetico) {
+          backdrop.style.opacity = '0';
+          setTimeout(() => backdrop.remove(), 200);
+      } else {
+          backdrop.remove();
+      }
+    });
+
+  document
+    .getElementById("btn-confirmar-reset")
+    .addEventListener("click", () => {
+      backdrop.remove();
+      console.log("Reiniciando sistema...");
+      window.ChatUI.clear();
+      if (window.limpiarResaltado) window.limpiarResaltado();
+      chrome.runtime.sendMessage({ type: "BROADCAST_RESET" });
+    });
 }
 
 // ---------------------------------------------------------
