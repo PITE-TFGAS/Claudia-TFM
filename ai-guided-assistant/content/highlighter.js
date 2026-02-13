@@ -1,5 +1,8 @@
 // SCRIPT ENCARGADO DEL CUADRO AMARILLO QUE RESALTA ELEMENTOS
 
+let scrollHandler = null;
+let isScrolling = false;
+
 // ---------------------------------------------------------
 // RESALTA EL ELEMENTO PASADO POR PARÁMETRO
 // ---------------------------------------------------------
@@ -39,20 +42,33 @@ function resaltarElemento(el) {
   // Scroll hacia el elemento
   el.scrollIntoView({ behavior: "smooth", block: "center" });
 
-  gestionarEsquivaChat(r);
+  gestionarEsquivaChat();
+
+  scrollHandler = () => {
+    if (!isScrolling) {
+      window.requestAnimationFrame(() => {
+        gestionarEsquivaChat();
+        isScrolling = false;
+      });
+      isScrolling = true;
+    }
+  };
+
+  window.addEventListener("scroll", scrollHandler, { passive: true });
 }
 
 // ---------------------------------------------------------
-// LÓGICA DE DODGING
+// LÓGICA DE DODGING (ESQUIVAR)
 // ---------------------------------------------------------
-function gestionarEsquivaChat(rectElemento) {
+function gestionarEsquivaChat() {
+  const overlayHighlighter = document.getElementById("ia-highlighter-overlay");
   const chat = document.getElementById("asistente-overlay");
-  if (!chat) return;
 
-  // coordenadas del chat
+  if (!chat || !overlayHighlighter) return;
+
+  const rectElemento = overlayHighlighter.getBoundingClientRect();
   const rectChat = chat.getBoundingClientRect();
 
-  // Si los cuadros se tocan en algún punto
   const hayColision = !(
     rectElemento.right < rectChat.left ||
     rectElemento.left > rectChat.right ||
@@ -60,28 +76,19 @@ function gestionarEsquivaChat(rectElemento) {
     rectElemento.top > rectChat.bottom
   );
 
-  // Mover el chat
   if (hayColision) {
-    console.log("El chat está tapando el elemento. Moviendo...");
-
     const windowWidth = window.innerWidth;
     const centroElementoX = rectElemento.left + rectElemento.width / 2;
 
-    chat.style.transition = "left 0.3s ease-in-out, top 0.3s ease-in-out";
+    chat.style.transition = "left 0.3s ease-in-out, right 0.3s ease-in-out";
 
-    // Saltar horizontalmente al lado contrario
     if (centroElementoX > windowWidth / 2) {
-      chat.style.left = "20px";
+      chat.style.left = "24px";
       chat.style.right = "auto";
     } else {
-      const nuevaLeft = windowWidth - rectChat.width - 20;
-      chat.style.left = `${nuevaLeft}px`;
-      chat.style.right = "auto";
+      chat.style.left = "auto";
+      chat.style.right = "24px";
     }
-
-    setTimeout(() => {
-      chat.style.transition = "";
-    }, 300);
   }
 }
 
@@ -92,6 +99,11 @@ function limpiarResaltado() {
   const existente = document.getElementById("ia-highlighter-overlay");
   if (existente) {
     existente.remove();
+  }
+
+  if (scrollHandler) {
+    window.removeEventListener("scroll", scrollHandler);
+    scrollHandler = null;
   }
 }
 
