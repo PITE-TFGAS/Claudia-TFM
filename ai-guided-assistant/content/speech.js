@@ -34,7 +34,9 @@ window.SpeechModule = {
     const State = window.AsistenteState;
     if (!State || !State.ttsEnabled) return;
 
-    const utter = new SpeechSynthesisUtterance(texto);
+    const textoLimpio = texto.replace(/\p{Extended_Pictographic}/gu, "");
+
+    const utter = new SpeechSynthesisUtterance(textoLimpio);
     if (this.vozSeleccionada) utter.voice = this.vozSeleccionada;
     utter.lang = "es-ES";
     this.synthesis.speak(utter);
