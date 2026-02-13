@@ -114,6 +114,7 @@ function mostrarModalGigante() {
     .addEventListener("click", () => {
       backdrop.remove();
       console.log("Reiniciando sistema...");
+      if (window.SpeechModule) window.SpeechModule.cancelar();
       window.ChatUI.clear();
       if (window.limpiarResaltado) window.limpiarResaltado();
       chrome.runtime.sendMessage({ type: "BROADCAST_RESET" });
