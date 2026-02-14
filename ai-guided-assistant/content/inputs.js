@@ -6,37 +6,44 @@ console.log("Input listeners loaded");
 // FUNCIÓN MANEJA EL DEBOUNCE
 // ---------------------------------------------------------
 function gestionarInteraccionUsuario(clickedInfo, tipoAccion) {
-    const State = window.AsistenteState;
+  const State = window.AsistenteState;
 
-    // Añadir al historial
-    const entry = `Usuario ${tipoAccion}: "${clickedInfo.text}" (<${clickedInfo.tag}>)`;
-    State.addToHistory(entry);
+  // Añadir al historial
+  const entry = `Usuario ${tipoAccion}: "${clickedInfo.text}" (<${clickedInfo.tag}>)`;
+  State.addToHistory(entry);
 
-    console.log(`${tipoAccion} registrado: ${clickedInfo.text}. Temporizador iniciado.`);
+  console.log(
+    `${tipoAccion} registrado: ${clickedInfo.text}. Temporizador iniciado.`,
+  );
 
-    // Resetear timer si existe
-    if (State.debounceTimer) {
-        clearTimeout(State.debounceTimer);
-    }
+  // Resetear timer si existe
+  if (State.debounceTimer) {
+    clearTimeout(State.debounceTimer);
+  }
 
-    // Feedback visual
-    chrome.runtime.sendMessage({
-        type: "SHOW_DESCRIPTION_OVERLAY",
-        descripcion: tipoAccion === 'escribió' ? "Procesando escritura... ⌨️" : "Observando navegación rápida... 👀"
-    });
+  // Feedback visual
+  chrome.runtime.sendMessage({
+    type: "SHOW_DESCRIPTION_OVERLAY",
+    descripcion:
+      tipoAccion === "escribió"
+        ? "Procesando escritura... ⌨️"
+        : "Observando navegación rápida... 👀",
+  });
 
-    // Iniciar nuevo timer
-    State.debounceTimer = setTimeout(() => {
-        console.log("Usuario detenido. Enviando historial a la IA.");
-        State.debounceTimer = null;
-        window.ejecutarCicloIA("follow_up", clickedInfo); 
-    }, State.DEBOUNCE_DELAY);
+  // Iniciar nuevo timer
+  State.debounceTimer = setTimeout(() => {
+    console.log("Usuario detenido. Enviando historial a la IA.");
+    State.debounceTimer = null;
+    window.ejecutarCicloIA("follow_up", clickedInfo);
+  }, State.DEBOUNCE_DELAY);
 }
 
 // ---------------------------------------------------------
 // LISTENER DE CLICKS
 // ---------------------------------------------------------
-document.addEventListener("click", (e) => {
+document.addEventListener(
+  "click",
+  (e) => {
     const State = window.AsistenteState;
 
     if (e.target.closest("#asistente-overlay")) return;
@@ -44,31 +51,40 @@ document.addEventListener("click", (e) => {
 
     const el = e.target.closest("[data-ia-id]");
     if (!el) {
-        console.log("Click en zona vacía ignorado.");
-        return; 
+      console.log("Click en zona vacía ignorado.");
+      return;
     }
 
     limpiarResaltado();
 
     const id = parseInt(el.getAttribute("data-ia-id"));
+
+    if (State.lastSuggestedId && id === parseInt(State.lastSuggestedId)) {
+      console.log("¡Clic correcto detectado!");
+      if (window.SFX) window.SFX.playClickSuccess();
+    }
+
     const infoMapa = window.mapaIA ? window.mapaIA.get(id) : null;
-      
+
     const clickedInfo = {
-        id: id,
-        text: infoMapa ? infoMapa.texto : (el.innerText || "").substring(0, 50),
-        tag: infoMapa ? infoMapa.tag : el.tagName.toLowerCase()
+      id: id,
+      text: infoMapa ? infoMapa.texto : (el.innerText || "").substring(0, 50),
+      tag: infoMapa ? infoMapa.tag : el.tagName.toLowerCase(),
     };
 
     gestionarInteraccionUsuario(clickedInfo, "pulsó");
-
-}, true);
+  },
+  true,
+);
 
 // ---------------------------------------------------------
 // LISTENER DE ENTER
 // ---------------------------------------------------------
-document.addEventListener("keydown", (e) => {
+document.addEventListener(
+  "keydown",
+  (e) => {
     if (e.key !== "Enter") return;
-    
+
     if (e.target.closest("#asistente-overlay")) return;
 
     const State = window.AsistenteState;
@@ -78,19 +94,27 @@ document.addEventListener("keydown", (e) => {
     let clickedInfo = null;
 
     if (el) {
-        const id = parseInt(el.getAttribute("data-ia-id"));
-        const infoMapa = window.mapaIA ? window.mapaIA.get(id) : null;
-        const valorEscrito = el.value || ""; 
-        
-        clickedInfo = {
-            id: id,
-            text: (infoMapa ? infoMapa.texto : "") + ` (Escribió: "${valorEscrito}")`,
-            tag: infoMapa ? infoMapa.tag : el.tagName.toLowerCase()
-        };
+      const id = parseInt(el.getAttribute("data-ia-id"));
+
+      if (State.lastSuggestedId && id === parseInt(State.lastSuggestedId)) {
+        console.log("¡Clic correcto detectado!");
+        if (window.SFX) window.SFX.playClickSuccess();
+      }
+
+      const infoMapa = window.mapaIA ? window.mapaIA.get(id) : null;
+      const valorEscrito = el.value || "";
+
+      clickedInfo = {
+        id: id,
+        text:
+          (infoMapa ? infoMapa.texto : "") + ` (Escribió: "${valorEscrito}")`,
+        tag: infoMapa ? infoMapa.tag : el.tagName.toLowerCase(),
+      };
     } else {
-        clickedInfo = { id: null, text: "Enter global", tag: "body" };
+      clickedInfo = { id: null, text: "Enter global", tag: "body" };
     }
 
     gestionarInteraccionUsuario(clickedInfo, "pulsó ENTER");
-
-}, true);
+  },
+  true,
+);

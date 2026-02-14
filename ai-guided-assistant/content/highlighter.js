@@ -3,12 +3,31 @@
 let scrollHandler = null;
 let isScrolling = false;
 
+// Animación
+if (!document.getElementById("ia-highlighter-styles")) {
+    const style = document.createElement("style");
+    style.id = "ia-highlighter-styles";
+    style.textContent = `
+        @keyframes ia-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7); transform: scale(1); }
+            50% { box-shadow: 0 0 20px 10px rgba(255, 215, 0, 0); transform: scale(1.02); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); transform: scale(1); }
+        }
+        .ia-pulse-effect {
+            animation: ia-pulse 2s infinite;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
 // ---------------------------------------------------------
 // RESALTA EL ELEMENTO PASADO POR PARÁMETRO
 // ---------------------------------------------------------
 function resaltarElemento(el) {
   // Limpiar resaltados anteriores
   limpiarResaltado();
+
+  if (window.SFX) window.SFX.playPop();
 
   const r = el.getBoundingClientRect(); // Posición relativa al viewport
   const scrollTop = window.scrollY || document.documentElement.scrollTop;
@@ -19,6 +38,7 @@ function resaltarElemento(el) {
   const o = document.createElement("div");
   // id para manipularlo
   o.id = "ia-highlighter-overlay";
+  o.classList.add("ia-pulse-effect");
 
   Object.assign(o.style, {
     position: "absolute",
@@ -34,7 +54,7 @@ function resaltarElemento(el) {
     zIndex: 999990,
     pointerEvents: "none",
     borderRadius: "6px",
-    transition: "all 0.2s ease-out",
+    transition: "top 0.2s, left 0.2s, width 0.2s, height 0.2s"
   });
 
   document.body.appendChild(o);

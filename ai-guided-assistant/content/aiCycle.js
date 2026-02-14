@@ -92,6 +92,7 @@ function procesarRespuestaIA(respuesta) {
     }
 
     if (respuesta.status === "completed") {
+        if (window.SFX) window.SFX.playTaskComplete();
         State.reset();
         limpiarResaltado();
         chrome.runtime.sendMessage({
