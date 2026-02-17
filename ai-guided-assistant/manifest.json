@@ -4,7 +4,7 @@
   "description": "Guides users step by step through web tasks using AI assistance.",
   "version": "0.0.2",
 
-  "permissions": ["activeTab", "scripting", "storage", "tabs"],
+  "permissions": ["activeTab", "scripting", "storage", "tabs", "tts"],
   "host_permissions": ["<all_urls>"],
 
   "action": {

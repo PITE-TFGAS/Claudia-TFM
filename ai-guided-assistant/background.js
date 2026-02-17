@@ -23,6 +23,37 @@ chrome.runtime.onStartup.addListener(() => {
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  
+  // Manejo de voz
+  if (message.type === "TTS_SPEAK") {
+    const options = {
+      lang: "es-ES",
+      rate: 1.0,
+      pitch: 1.0,
+      volume: 1.0,
+      enqueue: message.enqueue === true,
+    };
+
+    chrome.tts.getVoices((voices) => {
+      const googleVoice = voices.find(
+        (v) => v.voiceName.includes("Google") && v.lang.startsWith("es"),
+      );
+      if (googleVoice) {
+        options.voiceName = googleVoice.voiceName;
+      }
+
+      if (!options.enqueue) {
+        chrome.tts.stop();
+      }
+
+      chrome.tts.speak(message.text, options);
+    });
+  }
+
+  if (message.type === "TTS_STOP") {
+    chrome.tts.stop();
+  }
+
   // Gestión de pestañas
   if (message.type === "CLOSE_CURRENT_TAB") {
     if (sender.tab && sender.tab.id) {
@@ -85,7 +116,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // Llamar al backend (nuevo método paso a paso)
   if (message.type === "CALL_AI_STEP") {
-    fetch("http://localhost:3000/ai/stepGroq", {
+    fetch("http://localhost:3000/ai/stepGemini", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(message.payload),
@@ -113,7 +144,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     chrome.tabs.query({}, (tabs) => {
       tabs.forEach((tab) => {
-        chrome.tabs.sendMessage(tab.id, { type: "RESET_SESSION" }).catch(() => {});
+        chrome.tabs
+          .sendMessage(tab.id, { type: "RESET_SESSION" })
+          .catch(() => {});
       });
     });
   }

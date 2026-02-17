@@ -60,8 +60,6 @@ function mostrarModalGigante() {
     window.SpeechModule.leer("¿Quieres reiniciar y empezar otra tarea? Se borrará la memoria del chat");
   }
 
-  // Comprobar si estamos en modo estético
-  // Buscamos el contenedor principal del chat para ver si tiene la clase
   const chatOverlay = document.getElementById("asistente-overlay");
   const esModoEstetico = chatOverlay && chatOverlay.classList.contains("aesthetic-mode");
 
@@ -69,7 +67,6 @@ function mostrarModalGigante() {
   backdrop.id = "ia-modal-confirmacion";
   backdrop.className = "ia-modal-backdrop";
   
-  // --- CAMBIO CLAVE: APLICAR LA CLASE SI CORRESPONDE ---
   if (esModoEstetico) {
       backdrop.classList.add("aesthetic-mode");
   }
@@ -107,6 +104,7 @@ function mostrarModalGigante() {
       } else {
           backdrop.remove();
       }
+      if (window.SpeechModule) window.SpeechModule.cancelar();
     });
 
   document

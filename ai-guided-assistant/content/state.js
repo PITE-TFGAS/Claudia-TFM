@@ -55,9 +55,6 @@ window.AsistenteState = {
     if (!this.ttsEnabled && window.SpeechModule) {
       window.SpeechModule.cancelar();
     } else if (this.ttsEnabled && window.SpeechModule) {
-      // Forzar carga de voces si se activa por primera vez
-      if (!window.SpeechModule.vozSeleccionada)
-        window.SpeechModule.cargarVoces();
       window.SpeechModule.leer("Audio activado");
     }
 

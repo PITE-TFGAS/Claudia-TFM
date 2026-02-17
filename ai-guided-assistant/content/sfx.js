@@ -30,7 +30,8 @@ window.SFX = {
         osc.stop(startTime + duration);
     },
 
-    playClickSuccess() {
+    async playClickSuccess() {
+        await this.despertarAudio();
         this.init();
         if (this.ctx.state === 'suspended') this.ctx.resume();
 
@@ -40,7 +41,8 @@ window.SFX = {
         this.playTone(622.25, t + 0.08, 0.2, 0.4);
     },
 
-    playTaskComplete() {
+    async playTaskComplete() {
+        await this.despertarAudio();
         this.init();
         if (this.ctx.state === 'suspended') this.ctx.resume();
 
@@ -53,7 +55,8 @@ window.SFX = {
         this.playTone(1046.50, t + 0.45, 0.8, vol);
     },
 
-    playPop() {
+    async playPop() {
+        await this.despertarAudio();
         this.init();
         if (this.ctx.state === 'suspended') this.ctx.resume();
         const t = this.ctx.currentTime;
@@ -71,5 +74,16 @@ window.SFX = {
         gain.connect(this.ctx.destination);
         osc.start(t);
         osc.stop(t + 0.1);
+    },
+
+    async despertarAudio() {
+        this.init();
+        if (this.ctx.state === 'suspended') {
+            try {
+                await this.ctx.resume();
+            } catch (e) {
+                console.warn("No se pudo reanudar el audio:", e);
+            }
+        }
     }
 };
