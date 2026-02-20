@@ -44,11 +44,86 @@ function updateStatus(active) {
 }
 
 // ---------------------------------------------------------
-// LÓGICA PARA GUARDAR IA EXPERTA
+// LÓGICA DE IAS EXPERTAS (AÑADIR, LISTAR, EDITAR, BORRAR)
 // ---------------------------------------------------------
 const btnSaveExpert = document.getElementById("btn-save-expert");
 const expertStatus = document.getElementById("expert-status");
+const savedExpertsList = document.getElementById("saved-experts-list");
+const detailsAddExpert = document.getElementById("details-add-expert");
 
+// Función para pintar la lista de IAs guardadas
+function renderSavedExperts() {
+  chrome.storage.local.get(["user_custom_ais"], (res) => {
+    const ais = res.user_custom_ais || [];
+    savedExpertsList.innerHTML = "";
+
+    if (ais.length === 0) {
+      savedExpertsList.innerHTML = '<div class="empty-list">No hay IAs expertas guardadas.</div>';
+      return;
+    }
+
+    ais.forEach((ai) => {
+      const div = document.createElement("div");
+      div.className = "expert-item";
+      
+      div.innerHTML = `
+        <span class="expert-item-domain">${ai.domain}</span>
+        <span class="expert-item-endpoint">${ai.endpoint}</span>
+        <div class="expert-actions">
+          <button class="btn-edit" data-domain="${ai.domain}">Editar</button>
+          <button class="btn-delete" data-domain="${ai.domain}">Borrar</button>
+        </div>
+      `;
+      savedExpertsList.appendChild(div);
+    });
+
+    // Listener de Eliminar
+    document.querySelectorAll(".btn-delete").forEach(btn => {
+      btn.addEventListener("click", (e) => deleteExpert(e.target.dataset.domain));
+    });
+
+    // Listener de Editar
+    document.querySelectorAll(".btn-edit").forEach(btn => {
+      btn.addEventListener("click", (e) => editExpert(e.target.dataset.domain));
+    });
+  });
+}
+
+// Función para borrar una IA
+function deleteExpert(domain) {
+  chrome.storage.local.get(["user_custom_ais"], (res) => {
+    let ais = res.user_custom_ais || [];
+    ais = ais.filter(ai => ai.domain !== domain); 
+    
+    chrome.storage.local.set({ user_custom_ais: ais }, () => {
+      renderSavedExperts();
+    });
+  });
+}
+
+// Función para editar
+function editExpert(domain) {
+  chrome.storage.local.get(["user_custom_ais"], (res) => {
+    const ais = res.user_custom_ais || [];
+    const aiToEdit = ais.find(ai => ai.domain === domain);
+    
+    if (aiToEdit) {
+      // Rellenar formulario
+      document.getElementById("expert-domain").value = aiToEdit.domain;
+      document.getElementById("expert-endpoint").value = aiToEdit.endpoint;
+      document.getElementById("expert-apikey").value = aiToEdit.apiKey || "";
+      
+      detailsAddExpert.open = true;
+      document.getElementById("details-manage-experts").open = false;
+      
+      // Feedback visual
+      expertStatus.textContent = "Editando IA existente...";
+      expertStatus.style.color = "#000";
+    }
+  });
+}
+
+// Listener de Guardar
 btnSaveExpert.addEventListener("click", () => {
   const domain = document.getElementById("expert-domain").value.trim().toLowerCase();
   const endpoint = document.getElementById("expert-endpoint").value.trim();
@@ -60,11 +135,10 @@ btnSaveExpert.addEventListener("click", () => {
     return;
   }
 
-  // Obtener las IAs ya guardadas
   chrome.storage.local.get(["user_custom_ais"], (res) => {
     let ais = res.user_custom_ais || [];
-    ais = ais.filter(ai => ai.domain !== domain);
     
+    ais = ais.filter(ai => ai.domain !== domain);
     ais.push({ domain, endpoint, apiKey: apikey });
 
     chrome.storage.local.set({ user_custom_ais: ais }, () => {
@@ -75,9 +149,14 @@ btnSaveExpert.addEventListener("click", () => {
       document.getElementById("expert-endpoint").value = "";
       document.getElementById("expert-apikey").value = "";
       
+      renderSavedExperts();
+      
       setTimeout(() => {
         expertStatus.textContent = "";
       }, 3000);
     });
   });
 });
+
+
+renderSavedExperts();

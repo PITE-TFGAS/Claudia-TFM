@@ -19,8 +19,7 @@ window.AsistenteState = {
           "asistente_goal",
           "asistente_status",
           "asistente_history",
-          "asistente_tts",
-          "user_custom_ais"
+          "asistente_tts"
         ],
         (res) => {
           this.ttsEnabled = res.asistente_tts === true;
@@ -88,8 +87,7 @@ window.AsistenteState = {
       "asistente_goal",
       "asistente_status",
       "asistente_history",
-      "ia_original_host",
-      "user_custom_ais"
+      "ia_original_host"
     ]);
   },
 };

@@ -153,3 +153,74 @@ details.advanced-settings summary {
   font-weight: bold;
   min-height: 15px;
 }
+
+.expert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.expert-item {
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.expert-item-domain {
+  font-weight: bold;
+  font-size: 14px;
+  color: #000;
+  word-break: break-all;
+}
+
+.expert-item-endpoint {
+  font-size: 11px;
+  color: #666;
+  word-break: break-all;
+}
+
+.expert-actions {
+  display: flex;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.expert-actions button {
+  flex: 1;
+  padding: 5px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.btn-edit {
+  background-color: #444;
+}
+
+.btn-edit:hover {
+  background-color: #000;
+}
+
+.btn-delete {
+  background-color: #8B0000;
+}
+
+.btn-delete:hover {
+  background-color: #ff0000;
+}
+
+.empty-list {
+  text-align: center;
+  font-size: 13px;
+  color: #666;
+  font-style: italic;
+  padding: 10px 0;
+}
