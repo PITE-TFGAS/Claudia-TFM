@@ -21,8 +21,9 @@
         "content/state.js",     
         "content/tabKeeper.js", 
         "content/sfx.js",
+        "content/customAI.js",
         "content/aiCycle.js",     
-        "content/inputs.js",      
+        "content/inputs.js",   
         "content/content.js",
 
         "overlay/overlayState.js",
