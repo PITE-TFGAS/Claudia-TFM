@@ -87,3 +87,69 @@ hr {
   border-top: 1px solid #000;
   margin: 15px 0;
 }
+
+details.advanced-settings {
+  margin-top: 15px;
+  background: #f5f5f5;
+  border: 2px solid #333;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+details.advanced-settings summary {
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+  outline: none;
+}
+
+.expert-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.expert-form label {
+  font-size: 12px;
+  font-weight: bold;
+  color: #222;
+}
+
+.expert-form input {
+  padding: 8px;
+  border: 1px solid #666;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.expert-form input:focus {
+  border-color: #000;
+  outline: 2px solid #000;
+}
+
+.expert-form button {
+  padding: 10px;
+  background: #000;
+  color: #fff;
+  border: none;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-top: 5px;
+  transition: background 0.2s;
+}
+
+.expert-form button:hover {
+  background: #444;
+}
+
+.expert-status {
+  font-size: 13px;
+  text-align: center;
+  margin: 5px 0 0 0;
+  font-weight: bold;
+  min-height: 15px;
+}

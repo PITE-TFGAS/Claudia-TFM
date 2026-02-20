@@ -19,13 +19,32 @@
   <hr>
 
   <div class="control-group">
-    <label class="switch-label" for="toggle-design">Modo "Bonito"</label>
+    <label class="switch-label" for="toggle-design">Diseño minimalista</label>
     <label class="switch">
       <input type="checkbox" id="toggle-design">
       <span class="slider"></span>
     </label>
   </div>
-  <p class="small-hint">Desactiva para alto contraste y letras grandes.</p>
+  <p class="small-hint">Desactiva la accesibilidad del diseño</p>
+
+  <hr>
+
+  <details class="advanced-settings">
+    <summary>⚙️ Configurar IA Experta (Avanzado)</summary>
+    <div class="expert-form">
+      <label for="expert-domain">Sitio Web</label>
+      <input type="text" id="expert-domain" placeholder="www.iberia.com">
+      
+      <label for="expert-endpoint">Endpoint (URL de tu IA)</label>
+      <input type="url" id="expert-endpoint" placeholder="https://tu-api.com/ruta">
+      
+      <label for="expert-apikey">API Key (Opcional)</label>
+      <input type="password" id="expert-apikey" placeholder="sk-...">
+      
+      <button id="btn-save-expert">Guardar Experto</button>
+      <p id="expert-status" class="expert-status"></p>
+    </div>
+  </details>
 
   <script src="popup.js"></script>
 </body>

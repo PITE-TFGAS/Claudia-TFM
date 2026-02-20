@@ -42,3 +42,42 @@ function updateStatus(active) {
   statusText.textContent = active ? "ESTADO: ACTIVO" : "ESTADO: INACTIVO";
   statusText.style.color = active ? "#006400" : "#8B0000";
 }
+
+// ---------------------------------------------------------
+// LÓGICA PARA GUARDAR IA EXPERTA
+// ---------------------------------------------------------
+const btnSaveExpert = document.getElementById("btn-save-expert");
+const expertStatus = document.getElementById("expert-status");
+
+btnSaveExpert.addEventListener("click", () => {
+  const domain = document.getElementById("expert-domain").value.trim().toLowerCase();
+  const endpoint = document.getElementById("expert-endpoint").value.trim();
+  const apikey = document.getElementById("expert-apikey").value.trim();
+
+  if (!domain || !endpoint) {
+    expertStatus.textContent = "❌ Dominio y Endpoint obligatorios";
+    expertStatus.style.color = "#8B0000";
+    return;
+  }
+
+  // Obtener las IAs ya guardadas
+  chrome.storage.local.get(["user_custom_ais"], (res) => {
+    let ais = res.user_custom_ais || [];
+    ais = ais.filter(ai => ai.domain !== domain);
+    
+    ais.push({ domain, endpoint, apiKey: apikey });
+
+    chrome.storage.local.set({ user_custom_ais: ais }, () => {
+      expertStatus.textContent = "✅ IA Experta guardada con éxito";
+      expertStatus.style.color = "#006400";
+      
+      document.getElementById("expert-domain").value = "";
+      document.getElementById("expert-endpoint").value = "";
+      document.getElementById("expert-apikey").value = "";
+      
+      setTimeout(() => {
+        expertStatus.textContent = "";
+      }, 3000);
+    });
+  });
+});

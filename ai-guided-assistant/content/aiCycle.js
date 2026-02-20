@@ -35,25 +35,43 @@ async function ejecutarCicloIA(phase, clickedData) {
   }
 
   try {
-    const respuesta = await new Promise((resolve) => {
-      chrome.runtime.sendMessage(
-        {
-          type: "CALL_AI_STEP",
-          payload: {
-            goal: State.currentGoal,
-            dom: dom,
-            phase: phase,
-            lastSuggestedId: State.lastSuggestedId,
-            lastSuggestedText: State.lastSuggestedText,
-            clickedInfo: clickedData,
-            history: State.actionHistory,
-            url: window.location.href,
-            title: document.title,
-          },
-        },
-        resolve,
-      );
-    });
+    const payloadInfo = {
+      goal: State.currentGoal,
+      dom: dom,
+      phase: phase,
+      lastSuggestedId: State.lastSuggestedId,
+      lastSuggestedText: State.lastSuggestedText,
+      clickedInfo: clickedData,
+      history: State.actionHistory,
+      url: window.location.href,
+      title: document.title,
+    };
+
+    let respuestaFinal = null;
+
+    // Intentar usar IA experta
+    if (window.CustomAIManager) {
+        const expertoLocal = await window.CustomAIManager.getExpertForCurrentPage();
+        
+        if (expertoLocal) {
+            console.log("Intentando usar IA experta para:", expertoLocal.domain);
+            respuestaFinal = await window.CustomAIManager.callExpert(expertoLocal, payloadInfo);
+            
+            if (!respuestaFinal) {
+                console.warn("La IA experta falló o no respondió. Usando la IA generalista de respaldo...");
+            }
+        }
+    }
+
+    // Si no hay usar IA general
+    if (!respuestaFinal) {
+        respuestaFinal = await new Promise((resolve) => {
+            chrome.runtime.sendMessage({
+                type: "CALL_AI_STEP",
+                payload: payloadInfo
+            }, resolve);
+        });
+    }
 
     // Si el usuario pulsó RESET mientras esperábamos, currentGoal ahora es NULL
 
@@ -63,7 +81,7 @@ async function ejecutarCicloIA(phase, clickedData) {
       return;
     }
 
-    procesarRespuestaIA(respuesta);
+    procesarRespuestaIA(respuestaFinal);
   } catch (err) {
     console.error("Error ciclo IA", err);
   }

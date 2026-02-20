@@ -13,16 +13,32 @@ window.SpeechModule = {
     if (!enCola) {
     }
 
-    chrome.runtime.sendMessage({
-      type: "TTS_SPEAK",
-      text: textoLimpio,
-      lang: "es-ES",
-      enqueue: enCola,
-    });
+    try {
+      if (chrome.runtime && chrome.runtime.id) {
+        chrome.runtime.sendMessage({
+          type: "TTS_SPEAK",
+          text: textoLimpio,
+          lang: "es-ES",
+          enqueue: enCola,
+        });
+      }
+    } catch (e) {
+      if (!e.message.includes("Extension context invalidated")) {
+        console.warn("Error enviando TTS_SPEAK:", e);
+      }
+    }
   },
-  
+
   cancelar() {
-    chrome.runtime.sendMessage({ type: "TTS_STOP" });
+    try {
+      if (chrome.runtime && chrome.runtime.id) {
+        chrome.runtime.sendMessage({ type: "TTS_STOP" });
+      }
+    } catch (e) {
+      if (!e.message.includes("Extension context invalidated")) {
+        console.warn("Error enviando TTS_STOP:", e);
+      }
+    }
   },
 
   // --- RECONOCIMIENTO ---
