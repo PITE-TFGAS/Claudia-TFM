@@ -23,8 +23,9 @@ router.post("/intentGemini", async (req, res) => {
 });
 
 router.post("/stepGemini", async (req, res) => {
+  const payload = req.body.raw_payload || req.body;
   const { goal, dom, phase, lastSuggestedId, lastSuggestedText, clickedInfo, history, url, title } =
-    req.body;
+    payload;
 
   try {
     const raw = await callGeminiStep({
@@ -72,6 +73,7 @@ router.post("/intentGroq", async (req, res) => {
 
 // Ruta para el razonamiento paso a paso de navegación
 router.post("/stepGroq", async (req, res) => {
+  const payload = req.body.raw_payload || req.body;
   const { 
     goal, 
     dom, 
@@ -82,7 +84,7 @@ router.post("/stepGroq", async (req, res) => {
     history, 
     url, 
     title 
-  } = req.body;
+  } = payload;
 
   try {
     // modelo 70b para razonamiento complejo
