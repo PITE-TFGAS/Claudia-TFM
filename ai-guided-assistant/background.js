@@ -1,5 +1,7 @@
 console.log("Background loaded");
 
+importScripts('config.js');
+
 let esperandoSaludo = false;
 
 // Esto se ejecuta al abrir el navegador de 0
@@ -23,7 +25,6 @@ chrome.runtime.onStartup.addListener(() => {
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  
   // Manejo de voz
   if (message.type === "TTS_SPEAK") {
     const options = {
@@ -114,9 +115,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // async
   }
 
-  // Llamar al backend (nuevo método paso a paso)
+  // Llamar al backend
   if (message.type === "CALL_AI_STEP") {
-    fetch("http://localhost:3000/ai/stepGemini", {
+    fetch(ENV.API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(message.payload),
