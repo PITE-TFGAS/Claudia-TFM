@@ -150,12 +150,51 @@ btnSaveExpert.addEventListener("click", () => {
       document.getElementById("expert-apikey").value = "";
       
       renderSavedExperts();
+
+      chrome.storage.local.remove(["expert_form_draft", "expert_menu_open"]);
       
       setTimeout(() => {
         expertStatus.textContent = "";
       }, 3000);
     });
   });
+});
+
+// ---------------------------------------------------------
+// SISTEMA DE BORRADOR AUTOMÁTICO
+// ---------------------------------------------------------
+const domainInput = document.getElementById("expert-domain");
+const endpointInput = document.getElementById("expert-endpoint");
+const apikeyInput = document.getElementById("expert-apikey");
+
+// Cargar el borrador si existe al abrir el popup
+chrome.storage.local.get(["expert_form_draft", "expert_menu_open"], (res) => {
+  if (res.expert_form_draft) {
+    domainInput.value = res.expert_form_draft.domain || "";
+    endpointInput.value = res.expert_form_draft.endpoint || "";
+    apikeyInput.value = res.expert_form_draft.apikey || "";
+  }
+  if (res.expert_menu_open) {
+    detailsAddExpert.open = true;
+  }
+});
+
+// Guardar cada vez que escribe el usuario
+function saveDraft() {
+  const draft = {
+    domain: domainInput.value,
+    endpoint: endpointInput.value,
+    apikey: apikeyInput.value
+  };
+  chrome.storage.local.set({ expert_form_draft: draft });
+}
+
+domainInput.addEventListener("input", saveDraft);
+endpointInput.addEventListener("input", saveDraft);
+apikeyInput.addEventListener("input", saveDraft);
+
+detailsAddExpert.addEventListener("toggle", () => {
+  chrome.storage.local.set({ expert_menu_open: detailsAddExpert.open });
 });
 
 
