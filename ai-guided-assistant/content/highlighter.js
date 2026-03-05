@@ -2,6 +2,7 @@
 
 let scrollHandler = null;
 let isScrolling = false;
+let trackerFrame = null;
 
 // Animación
 if (!document.getElementById("ia-highlighter-styles")) {
@@ -41,7 +42,7 @@ function resaltarElemento(el) {
   o.classList.add("ia-pulse-effect");
 
   Object.assign(o.style, {
-    position: "absolute",
+    position: "fixed",
     top: r.top + scrollTop - padding + "px",
     left: r.left + scrollLeft - padding + "px",
     width: r.width + padding * 2 + "px",
@@ -54,13 +55,32 @@ function resaltarElemento(el) {
     zIndex: 999990,
     pointerEvents: "none",
     borderRadius: "6px",
-    transition: "top 0.2s, left 0.2s, width 0.2s, height 0.2s"
+    transition: "width 0.1s, height 0.1s"
   });
 
   document.body.appendChild(o);
 
   // Scroll hacia el elemento
   el.scrollIntoView({ behavior: "smooth", block: "center" });
+
+  // FUNCIÓN RASTREADORA
+  function trackElement() {
+    const overlay = document.getElementById("ia-highlighter-overlay");
+    if (!overlay) return; // Si ya se borró, detenemos el bucle
+
+    const r = el.getBoundingClientRect();
+
+    // Actualizamos posición
+    overlay.style.top = (r.top - padding) + "px";
+    overlay.style.left = (r.left - padding) + "px";
+    overlay.style.width = (r.width + padding * 2) + "px";
+    overlay.style.height = (r.height + padding * 2) + "px";
+
+    trackerFrame = requestAnimationFrame(trackElement);
+  }
+
+  // Iniciamos el rastreo
+  trackElement();
 
   gestionarEsquivaChat();
 
@@ -123,6 +143,11 @@ function limpiarResaltado() {
   const existente = document.getElementById("ia-highlighter-overlay");
   if (existente) {
     existente.remove();
+  }
+
+  if (trackerFrame) {
+    cancelAnimationFrame(trackerFrame);
+    trackerFrame = null;
   }
 
   if (scrollHandler) {
