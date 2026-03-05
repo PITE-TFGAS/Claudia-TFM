@@ -21,6 +21,12 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 app.use(express.json({ limit: "5mb" }));
+
+// Ruta para mantener el servidor despierto
+app.get("/ping", (req, res) => {
+  res.status(200).send("Servidor despierto y listo");
+});
+
 app.use("/ai", aiRoutes);
 
 app.listen(PORT, () => {
