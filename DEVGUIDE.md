@@ -1,4 +1,3 @@
-
 # 🧠 Guía para Desarrolladores: Integrar una IA Experta Personalizada
 
 Esta guía explica cómo conectar tu propio servidor de Inteligencia Artificial (Backend) a la extensión del Asistente de Navegación.
@@ -82,3 +81,50 @@ La extensión es lo suficientemente inteligente como para extraer el JSON inclus
 * **`status` (String):**
 * Usa `"in_progress"` si el usuario aún tiene pasos por completar.
 * Usa `"completed"` si el objetivo final (`goal`) se ha cumplido con éxito.
+
+## ⚙️ Activar la Interfaz de IA Experta (Modo Desarrollador)
+
+Por diseño y accesibilidad, **la interfaz visual para añadir IAs expertas está oculta (comentada) por defecto**. Esto se hace para mantener el popup lo más simple posible para los usuarios mayores y evitar configuraciones accidentales.
+
+Si eres un desarrollador y deseas configurar tus propios endpoints, tienes dos opciones:
+
+### Opción A: Descomentar la UI en el HTML (Recomendado)
+1. Abre el archivo `popup.html`.
+2. Ve a la parte inferior del archivo.
+3. Localiza el bloque comentado que dice `` y elimina las etiquetas de comentario HTML (``).
+4. Guarda el archivo y recarga la extensión en Chrome. Ahora verás los menús desplegables para gestionar tus IAs.
+
+### Opción B: Inyectar la configuración desde la Consola (Sin tocar el HTML)
+Si no quieres modificar el código fuente pero necesitas probar tu IA experta, puedes inyectar la configuración directamente en la memoria de la extensión usando la consola del navegador.
+
+1. Haz clic derecho sobre el icono de la extensión y selecciona **"Inspeccionar ventana emergente"** (o ve a `chrome://extensions` y abre la vista del *Service Worker*).
+2. Ve a la pestaña **Console**.
+3. Pega y ejecuta el siguiente código, adaptando los valores a tus necesidades:
+
+\`\`\`javascript
+// Añadir una IA experta manualmente a la base de datos local
+chrome.storage.local.get(["user_custom_ais"], (res) => {
+  let ais = res.user_custom_ais || [];
+  
+  // Configura tu IA aquí:
+  const nuevaIA = {
+    domain: "google.com", // Pon "*" para que aplique a todas las webs
+    endpoint: "https://tu-api.com/ruta",
+    apiKey: "tu-api-key-aqui" // Déjalo en blanco "" si no usas autenticación
+  };
+
+  // Filtrar por si ya existía ese dominio y añadir la nueva
+  ais = ais.filter(ai => ai.domain !== nuevaIA.domain);
+  ais.push(nuevaIA);
+
+  // Guardar
+  chrome.storage.local.set({ user_custom_ais: ais }, () => {
+    console.log("✅ IA Experta inyectada con éxito:", nuevaIA);
+  });
+});
+\`\`\`
+
+Para verificar qué IAs tienes configuradas actualmente por consola, ejecuta:
+\`\`\`javascript
+chrome.storage.local.get("user_custom_ais", res => console.log(res.user_custom_ais));
+\`\`\`
