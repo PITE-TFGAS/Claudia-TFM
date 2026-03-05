@@ -116,7 +116,7 @@ window.ChatUI = {
       // Estado global
       const isEnabled = window.AsistenteState
         ? window.AsistenteState.ttsEnabled
-        : false;
+        : true;
 
       const icon = isEnabled ? "🔊" : "🔇";
       const text = isEnabled ? "VOZ ON" : "SILENCIO";

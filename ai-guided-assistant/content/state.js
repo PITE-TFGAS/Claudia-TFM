@@ -9,7 +9,7 @@ window.AsistenteState = {
   actionHistory: [],
   debounceTimer: null,
   DEBOUNCE_DELAY: 5000,
-  ttsEnabled: false,
+  ttsEnabled: true,
 
   // Inicializar estado desde el storage
   async loadFromStorage() {
@@ -22,7 +22,7 @@ window.AsistenteState = {
           "asistente_tts"
         ],
         (res) => {
-          this.ttsEnabled = res.asistente_tts === true;
+          this.ttsEnabled = res.asistente_tts !== false
           if (res.asistente_goal && res.asistente_status === "active") {
             this.currentGoal = res.asistente_goal;
             this.actionHistory = res.asistente_history || [];
