@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "AI Guided Assistant",
-  "description": "Guides users step by step through web tasks using AI assistance.",
-  "version": "0.1.0",
+  "name": "Asistente guiado por IA",
+  "description": "Guía a los usuarios paso a paso a través de tareas web utilizando asistencia de IA.",
+  "version": "0.1.1",
 
   "permissions": ["activeTab", "scripting", "storage", "tabs", "tts"],
   "host_permissions": ["<all_urls>"],
