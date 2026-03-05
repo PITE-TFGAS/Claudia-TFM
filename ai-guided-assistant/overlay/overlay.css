@@ -172,7 +172,7 @@
   border-radius: 6px;
   padding: 12px;
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 300;
 }
 
 #btn-mic-toggle {
@@ -181,6 +181,11 @@
   color: #fff !important;
   border-radius: 6px !important;
   font-size: 24px !important;
+  text-align: center !important;
+}
+
+#btn-mic-toggle span {
+  font-size: 20px;
 }
 
 .mic-active {
@@ -246,6 +251,7 @@
   border-radius: 8px;
   cursor: pointer;
   border: 3px solid #000;
+  text-align: center;
 }
 
 /* Botón CANCELAR (Blanco) */
