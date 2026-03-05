@@ -6,7 +6,10 @@ import fetch from "node-fetch";
 
 // Cargar claves
 const rawKeys = process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || "";
-const API_KEYS = rawKeys.split(",").map((k) => k.trim()).filter((k) => k);
+const API_KEYS = rawKeys
+  .split(",")
+  .map((k) => k.trim())
+  .filter((k) => k);
 
 if (API_KEYS.length === 0) {
   console.error("ERROR CRÍTICO: No hay claves de Gemini configuradas en .env");
@@ -49,7 +52,9 @@ async function makeGeminiRequest(body) {
 
       // Error de límite
       if (res.status === 429) {
-        console.warn(`Clave agotada (429): ...${apiKey.slice(-4)}. Cambiando...`);
+        console.warn(
+          `Clave agotada (429): ...${apiKey.slice(-4)}. Cambiando...`,
+        );
         rotateKey();
         attempts++;
         continue;
@@ -57,12 +62,15 @@ async function makeGeminiRequest(body) {
 
       // Otros errores
       const errorData = await res.json();
-      throw new Error(`Gemini Error ${res.status}: ${errorData.error?.message || res.statusText}`);
-
+      throw new Error(
+        `Gemini Error ${res.status}: ${errorData.error?.message || res.statusText}`,
+      );
     } catch (err) {
       // Error de red
       if (err.message.includes("fetch") || err.message.includes("network")) {
-        console.warn("Error de red con Gemini. Rotando clave y reintentando...");
+        console.warn(
+          "Error de red con Gemini. Rotando clave y reintentando...",
+        );
         rotateKey();
         attempts++;
       } else {
@@ -164,7 +172,7 @@ export async function callGeminiStep({
 
   // Prompt
   const prompt = `
-  Eres un asistente de navegación web experto para personas mayores. Tu trabajo es ayudar al usuario a completar CUALQUIER objetivo en CUALQUIER sitio web.
+  Eres un asistente de navegación web experto para personas mayores, usa lenguaje simple. Tu trabajo es ayudar al usuario a completar CUALQUIER objetivo en CUALQUIER sitio web.
   OBJETIVO DEL USUARIO: "${goal}"
   
   CONTEXTO:
@@ -182,32 +190,42 @@ export async function callGeminiStep({
   - [SELECCIONADO]: Elemento ya activo (Radio button marcado, Tab activa).
   - [PRECIO]: Información económica crítica.
   - [VACÍO]: Input que necesita ser rellenado.
+  - [MODAL_ABIERTO]: Elemento que pertenece a una ventana emergente, pop-up, alerta o aviso de cookies. PRIORIDAD MÁXIMA.
+  - [ERROR]: Un mensaje de validación o error en la página. PRIORIDAD CRÍTICA. Debes leerlo e indicar al usuario cómo solucionarlo antes de continuar.
 
   REGLAS DE RAZONAMIENTO:
 
   1. **PRIORIDAD DEL CHAT (CRÍTICO):**
      - Si en el CONTEXTO ves una "INSTRUCCIÓN PRIORITARIA", obedece eso inmediatamente.
 
-  2. **ANÁLISIS DE COMPLETITUD (FORM VALIDATION):**
+  2. **ATENCIÓN A MODALES (PRIORIDAD ABSOLUTA):**
+     - Si en el DOM ACTUAL detectas CUALQUIER elemento con la etiqueta [MODAL_ABIERTO], DEBES interactuar con él inmediatamente.
+     - Ignora el resto de la página de fondo hasta que el modal desaparezca.
+     - Si es un aviso de cookies o publicidad, sugiere el botón para cerrarlo, rechazarlo o aceptarlo (según sea más rápido para limpiar la pantalla).
+     - Si es un modal crítico para la tarea (ej. "Introducir datos de pago"), guía al usuario a través de él.
+
+  3. **ANÁLISIS DE COMPLETITUD (FORM VALIDATION):**
      - Si ves varias opciones pregúntale al usuario cuál prefiere o selecciona la más barata
      - Antes de pulsar botones de avance ("Buscar", "Continuar", "Pagar", "Enviar"), verifica que los campos lógicos necesarios estén rellenos.
      - Si ves campos etiquetados como [VACÍO] que parecen importantes para el objetivo, pide al usuario que los rellene.
      - Si el campo dice [TIENE VALOR: ...], asume que ya está hecho, salvo que sea incoherente con el objetivo.
 
-  3. **DETECCIÓN DE AMBIGÜEDAD (GAP ANALYSIS):**
+  4. **DETECCIÓN DE AMBIGÜEDAD (GAP ANALYSIS):**
      - Busca opciones en el DOM que modifiquen el resultado (filtros, tipos de tarifa, variantes de producto, condiciones legales).
      - Si el usuario NO especificó preferencia sobre esa opción en su objetivo, y la opción es crítica (ej: Precios, Tallas, Tipos de usuario), sugiérele que la revise.
      - Ejemplo: Si el objetivo es "Comprar camiseta" y ves "Talla S, M, L", pregunta la talla. No asumas.
 
-  4. **COHERENCIA DE ACCIÓN:**
+  5. **COHERENCIA DE ACCIÓN:**
      - Si la acción anterior del usuario fue exitosa (el historial muestra que rellenó el campo correctamente), PASA AL SIGUIENTE CAMPO. No le pidas repetir lo mismo.
      - Si tu "Instruction Anterior" fue pulsar X, y en el nuevo DOM ves que X sigue ahí idéntico (sin marcarse como seleccionado), pero en "Lo que hizo realmente el usuario" aparece X, asume que el usuario ya está en ese apartado.
      - Si el usuario pulsó un elemento equivocado, explícale el error amablemente.
+
+  6. **DETECCIÓN DE ERRORES:** Si ves un texto marcado con [ERROR], tu siguiente paso DEBE ser avisar al usuario de este fallo para que lo corrija. No pulses botones de "Continuar" si hay errores visibles en el formulario.
   
   El ID del elemento está en la propiedad "i".
   Responde SOLO JSON estricto:
   {
-    "feedback": "Mensaje corto y natural de lo que el usuario debe hacer.",
+    "feedback": "Mensaje corto de lo que el usuario debe hacer SIN lenguaje técnico.",
     "target_id": number | null (si status es completed),
     "status": "in_progress" | "completed"
   }
@@ -216,8 +234,8 @@ export async function callGeminiStep({
   const body = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
-        response_mime_type: "application/json"
-    }
+      response_mime_type: "application/json",
+    },
   };
 
   // Usamos el sistema de rotación

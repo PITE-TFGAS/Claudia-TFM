@@ -42,25 +42,41 @@ function obtenerDOM() {
     let texto = "";
     
     // Extracción de texto
-    if (el.tagName === "INPUT") {
-      const label = document.querySelector(`label[for="${el.id}"]`);
-      let labelTxt = label ? label.innerText : "";
-      
-      if (el.type === "radio" || el.type === "checkbox") {
-        // Texto del padre o contenedores cercanos
-        const container = el.closest('label') || el.parentElement;
-        
-        if (container) {
-            const textoContenedor = limpiarTexto(container.innerText);
-            if (textoContenedor.length > 0) {
-                labelTxt = textoContenedor;
-                nodosIgnorados.add(container);
-                container.querySelectorAll('*').forEach(h => nodosIgnorados.add(h));
-            }
+// Extracción de texto
+    if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
+      let labelTxt = "";
+
+      if (el.id) {
+        const label = document.querySelector(`label[for="${el.id}"]`);
+        if (label) {
+          labelTxt = label.innerText;
+          nodosIgnorados.add(label); 
         }
+      }
+      
+      if (!labelTxt) {
+        const parentLabel = el.closest('label') || el.closest('.input-text, .input-container, .form-group');
+        if (parentLabel) {
+          labelTxt = parentLabel.innerText;
+          nodosIgnorados.add(parentLabel);
+          parentLabel.querySelectorAll('label, span, p').forEach(h => nodosIgnorados.add(h));
+        }
+      }
+      
+      if (!labelTxt) {
+        labelTxt = el.getAttribute("aria-label") || el.name || el.title || "Campo de texto";
+      }
+
+      labelTxt = limpiarTexto(labelTxt);
+
+      labelTxt = labelTxt.split('\n')[0];
+
+      if (el.type === "radio" || el.type === "checkbox") {
         texto = `${labelTxt} (${el.checked ? "Marcado" : "Desmarcado"})`;
       } else {
-        texto = `${labelTxt} ${el.placeholder || ""} ${el.value ? '[Valor: ' + el.value + ']' : ''}`;
+        const placeholderTxt = el.placeholder ? `(Ej: ${el.placeholder})` : "";
+        const valorTxt = el.value ? `[TIENE VALOR: ${el.value}]` : "[VACÍO]";
+        texto = `${labelTxt} ${placeholderTxt} ${valorTxt}`;
       }
     } else if (el.tagName === "SELECT") {
       texto = `Selección: ${el.options[el.selectedIndex]?.text || ""}`;
@@ -80,6 +96,11 @@ function obtenerDOM() {
     if (texto.length > 0) {
       let etiquetas = ["ACCION"];
       const lowerTxt = texto.toLowerCase();
+
+      // Detección de Modales/Popups
+      if (el.closest('dialog, [role="dialog"], [role="alertdialog"], .modal, .popup, .overlay')) {
+        etiquetas.push("MODAL_ABIERTO");
+      }
 
       // Detectar barras de progreso
       if (esBarraDePasos(el)) {
@@ -108,6 +129,21 @@ function obtenerDOM() {
     }
   });
 
+  // Detector de errores
+  const esMensajeDeError = (el) => {
+    // 1. Detección por accesibilidad (El estándar global)
+    if (el.getAttribute("role") === "alert" || el.getAttribute("aria-invalid") === "true") return true;
+
+    // 2. Detección por clases o IDs en el elemento o en sus padres cercanos
+    // Buscamos palabras típicas de error en el código fuente
+    const contenedorSospechoso = el.closest('[class*="error" i], [class*="invalid" i], [class*="danger" i], [class*="alert" i], [id*="error" i]');
+    
+    // Si está dentro de una caja de error, es un error
+    if (contenedorSospechoso) return true;
+
+    return false;
+  };
+
   // Textos informativos
   const todos = document.querySelectorAll("div, span, p, h1, h2, h3, h4, li, label, td");
   
@@ -129,8 +165,12 @@ function obtenerDOM() {
     if (texto.length < 2) return;
     if (/^\d{1,2}$/.test(texto)) return;
 
+    let etiquetas = [];
     const esPrecio = /[\d.,]+\s*[$€£¥]/.test(texto);
-    const etiquetas = esPrecio ? ["PRECIO"] : [];
+    if (esPrecio) etiquetas.push("PRECIO");
+    
+    if (esMensajeDeError(el)) etiquetas.push("ERROR");
+
     const ultimo = elementosParaIA[elementosParaIA.length - 1];
     if (ultimo && ultimo.x.includes(texto)) return;
 
@@ -196,6 +236,13 @@ function buscarElementoRobusto(idIA) {
 function esVisible(el) {
   const style = window.getComputedStyle(el);
   if (!el) return false;
+
+  if (el.tagName === "INPUT" || el.tagName === "SELECT" || el.tagName === "TEXTAREA") {
+    if (el.type === "hidden" || style.display === "none" || style.visibility === "hidden") {
+      return false;
+    }
+    return true; 
+  }
   
   if (el.getAttribute("aria-hidden") === "true") return false;
   if (el.offsetParent === null && el.tagName !== "BODY") return false;
