@@ -138,7 +138,7 @@ function restoreChatHistory() {
       if (history.length === 0 && !hayMision) {
         window.ChatUI.addMessage(
           "assistant",
-          "Hola ✨ ¿Qué quieres hacer en esta página?",
+          "¡Hola! ✨ Soy tu Asistente de Navegación. Dime qué quieres conseguir y te guiaré paso a paso. Puedes escribirlo abajo o pulsar el botón del micrófono 🎙️ para hablarme.",
         );
       } else {
         history.forEach((msg) =>

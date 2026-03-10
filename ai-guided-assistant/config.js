@@ -3,5 +3,5 @@
 // ¡Añade config.js a tu .gitignore para no subirlo a repositorios públicos!
 
 const ENV = {
-  API_URL: "https://asistente-web-tfm.onrender.com/ai/stepGemini"
+  API_URL: "http://localhost:3000/ai/stepGemini"
 };
