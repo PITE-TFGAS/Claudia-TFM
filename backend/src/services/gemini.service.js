@@ -200,7 +200,7 @@ export async function callGeminiStep({
 
   2. **ATENCIÓN A MODALES (PRIORIDAD ABSOLUTA):**
      - Si en el DOM ACTUAL detectas CUALQUIER elemento con la etiqueta [MODAL_ABIERTO], DEBES interactuar con él inmediatamente.
-     - Ignora el resto de la página de fondo hasta que el modal desaparezca.
+     - Ignora el resto de la página hasta que el modal desaparezca.
      - Si es un aviso de cookies o publicidad, sugiere el botón para cerrarlo, rechazarlo o aceptarlo (según sea más rápido para limpiar la pantalla).
      - Si es un modal crítico para la tarea (ej. "Introducir datos de pago"), guía al usuario a través de él.
 
@@ -225,7 +225,7 @@ export async function callGeminiStep({
   El ID del elemento está en la propiedad "i".
   Responde SOLO JSON estricto:
   {
-    "feedback": "Mensaje corto de lo que el usuario debe hacer SIN lenguaje técnico.",
+    "feedback": "Mensaje corto de lo que el usuario debe hacer SIN lenguaje técnico y sin ID.",
     "target_id": number | null (si status es completed),
     "status": "in_progress" | "completed"
   }
