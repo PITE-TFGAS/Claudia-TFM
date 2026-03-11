@@ -6,6 +6,7 @@ import fetch from "node-fetch";
 
 // Cargar claves
 const rawKeys = process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || "";
+
 const API_KEYS = rawKeys
   .split(",")
   .map((k) => k.trim())
@@ -30,14 +31,21 @@ function rotateKey() {
   console.log(`Rotando a la clave #${currentKeyIndex + 1} del pool.`);
 }
 
+// Utilidad para esperar
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // Hace petición y reintenta si falla
 async function makeGeminiRequest(body) {
   let attempts = 0;
-  const maxAttempts = API_KEYS.length;
+  const maxAttempts = 3; // reintentos aunque solo haya 1 key
 
   while (attempts < maxAttempts) {
     const apiKey = getCurrentKey();
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+    const url =
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
     try {
       const res = await fetch(url, {
@@ -47,14 +55,16 @@ async function makeGeminiRequest(body) {
       });
 
       if (res.ok) {
-        return res.json();
+        return await res.json();
       }
 
-      // Error de límite
-      if (res.status === 429) {
+      // RATE LIMIT
+      if (res.status === 429 || res.status === 503) {
         console.warn(
-          `Clave agotada (429): ...${apiKey.slice(-4)}. Cambiando...`,
+          `Rate limit alcanzado (429). Esperando antes de reintentar...`
         );
+
+        await sleep(2000); // esperar 2s
         rotateKey();
         attempts++;
         continue;
@@ -62,25 +72,35 @@ async function makeGeminiRequest(body) {
 
       // Otros errores
       const errorData = await res.json();
+
       throw new Error(
-        `Gemini Error ${res.status}: ${errorData.error?.message || res.statusText}`,
+        `Gemini Error ${res.status}: ${
+          errorData.error?.message || res.statusText
+        }`
       );
     } catch (err) {
       // Error de red
-      if (err.message.includes("fetch") || err.message.includes("network")) {
+      if (
+        err.message.includes("fetch") ||
+        err.message.includes("network") ||
+        err.name === "AbortError"
+      ) {
         console.warn(
-          "Error de red con Gemini. Rotando clave y reintentando...",
+          "Error de red con Gemini. Esperando antes de reintentar..."
         );
+
+        await sleep(2000);
         rotateKey();
         attempts++;
-      } else {
-        // Error lógico
-        throw err;
+        continue;
       }
+
+      // Error lógico
+      throw err;
     }
   }
 
-  throw new Error("Todas las claves API de Gemini se han agotado o fallado.");
+  throw new Error("No se pudo completar la petición tras varios intentos.");
 }
 
 export async function callGemini(intent, dom) {
